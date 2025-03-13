@@ -22,7 +22,7 @@ objDatabaseInterface.connection.commit();
 
 def getRunContent():
     dictToWrite=dict();
-    for command in [ ['id'], ['hostname'], ['cat', '/etc/machine-id'], ['pwd']]:
+    for command in [ ['id'], ['hostname'], ['cat', '/etc/machine-id'], ['pwd'], ['git', 'status'], ['git', 'log', '-n1'], ['env'], ['git', 'diff', 'HEAD']]:
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
         if( len(stderr) > 0 or ((process.returncode) is not None and (process.returncode != 0)) ):
