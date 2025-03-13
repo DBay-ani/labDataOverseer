@@ -16,7 +16,9 @@ import traceback;
 
 from utils.handleError import handleError;
 
-objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", ["Starting run.py."]);
+thisFileName=(__file__.split("/")[-1]);
+
+objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", [f"Starting `{thisFileName}` ."]);
 objDatabaseInterface.connection.commit();
 
 
@@ -58,13 +60,13 @@ try:
         # objDatabaseInterface.cursor.execute("BEGIN");
         objDatabaseInterface.connection.rollback();
         objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
-            [f"Starting Loop Cycle Number {cycleNumber} of this execution of the daemon"]);
+            [f"Starting Loop Cycle Number {cycleNumber} of this execution of the `{thisFileName}`."]);
         objDatabaseInterface.connection.commit();
 
         if( os.path.exists(config.defaultValues.nameOfFileToCauseDaemonToExit) ):
             objDatabaseInterface.connection.rollback();
             objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
-                [f"Detected the existance of the flagging-file used to command this daemon to exist, \"{config.defaultValues.nameOfFileToCauseDaemonToExit}\""]);
+                [f"Detected the existance of the flagging-file used to command this `{thisFileName}` to exit, \"{config.defaultValues.nameOfFileToCauseDaemonToExit}\""]);
             objDatabaseInterface.connection.commit();
             break;    
 
@@ -81,7 +83,7 @@ try:
 
         objDatabaseInterface.connection.rollback();
         objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
-            [f"Ending Loop Cycle Number {cycleNumber} of this execution of the daemon. "+\
+            [f"Ending Loop Cycle Number {cycleNumber} of this execution of `{thisFileName}`. "+\
              f"Proceeding to sleep for {config.defaultValues.timeToSleepBetweenChecks} seconds after committing this."]);
         objDatabaseInterface.connection.commit();
 
@@ -90,13 +92,14 @@ try:
         time.sleep(config.defaultValues.timeToSleepBetweenChecks);
 
 except: # The item to the right does not work as hoped to catch KeyboadInterupts it seems...#  Exception as e:
-    handleError("An exception has occurred that has been handled by the top-level of run.py " + \
+    handleError(f"An exception has occurred that has been handled by the top-level of `{thisFileName}` " + \
                 "(note: keyboard interupts have the nasty tendency of leaving the trace empty).");
 
     
 
 objDatabaseInterface.connection.rollback();
-objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", ["Preparing to exit run.py: Making final commit then closing connection."]);
+objDatabaseInterface.cursor.execute(f"INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
+    [f"Preparing to exit `{thisFileName}`; Making final commit then closing connection."]);
 objDatabaseInterface.connection.commit();
 objDatabaseInterface.connection.rollback();    
 objDatabaseInterface.close();
