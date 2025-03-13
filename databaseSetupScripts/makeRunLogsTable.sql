@@ -8,7 +8,7 @@ CREATE TABLE RunLogsTable (
     CHECK( (humanReadableTime is NULL) or (length(humanReadableTime) > 0) ),
     CHECK( (unixEpochTime is NULL)  == (humanReadableTime is NULL) )
 );
-CREATE TRIGGER AddTimingInfo 
+CREATE TRIGGER AddTimingInfo_RunLogsTable 
 AFTER INSERT ON RunLogsTable
 FOR EACH ROW 
 BEGIN
