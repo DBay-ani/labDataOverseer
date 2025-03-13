@@ -20,7 +20,7 @@ objDatabaseInterface.connection.commit();
 
 
 
-def getRunContent():
+def getRunContext():
     dictToWrite=dict();
     for command in [ ['id'], ['hostname'], ['cat', '/etc/machine-id'], ['pwd'], ['git', 'status'], ['git', 'log', '-n1'], ['env'], ['git', 'diff', 'HEAD']]:
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -35,16 +35,39 @@ def getRunContent():
 
 
 
+def handleError(specificMessage : str) -> None:
+    requires(isinstance(specificMessage, str));
+    objDatabaseInterface.connection.rollback();
+    errorMessageIndented = "    " + "".join(traceback.format_exc()).replace("\n", "\n    ");
+    # exceptionAsStringIndented=str(e).replace("\n", "\n    ");
+    stringToPrint=specificMessage +  f"\nDetails:\nTraceback:\n{errorMessageIndented}"; # \nException e:\n{exceptionAsStringIndented}";
+    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
+        [stringToPrint]);
+    objDatabaseInterface.connection.commit();
+    sys.stderr.write(stringToPrint);
+    sys.stderr.flush();
+    return ;
+
+
+def testFunct(*x) -> None:
+    print("strarting test funct",flush=True);
+    time.sleep(30);
+    print("exitting test funct", flush=True);
+
+routinesToCallAndTheirName=[ \
+    (testFunct,"ExampleFunction")
+];
+
 
 try:
 
-    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", ["Run context information:" + getRunContent()]);
+    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", ["Run context information:" + getRunContext()]);
     objDatabaseInterface.connection.commit();
  
 
-
     cycleNumber=0;
     while(True):
+        print(f"{cycleNumber}",flush=True);
         # objDatabaseInterface.cursor.execute("BEGIN");
         objDatabaseInterface.connection.rollback();
         objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
@@ -58,10 +81,16 @@ try:
             objDatabaseInterface.connection.commit();
             break;    
 
-        try:
-            print("hi!");
-        except:
-            print("oh no");
+        for thisSubRoutine, subRoutineName in routinesToCallAndTheirName:
+            objDatabaseInterface.connection.rollback();
+            objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
+                [f"Starting execution of subroutine \"{subRoutineName}\"."]);
+            objDatabaseInterface.connection.commit();
+
+            try:
+                thisSubRoutine(objDatabaseInterface);
+            except:
+                handleError(f"An exception has occurred while running subroutine {subRoutineName}");
 
         objDatabaseInterface.connection.rollback();
         objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
@@ -74,15 +103,9 @@ try:
         time.sleep(config.defaultValues.timeToSleepBetweenChecks);
 
 except: # The item to the right does not work as hoped to catch KeyboadInterupts it seems...#  Exception as e:
-    objDatabaseInterface.connection.rollback();
-    errorMessageIndented = "    " + "".join(traceback.format_exc()).replace("\n", "\n    ");
-    # exceptionAsStringIndented=str(e).replace("\n", "\n    ");
-    stringToPrint="An exception has occurred (note: keyboard interupts have the nasty tendency of leaving the trace empty). Details:\nTraceback:\n{errorMessageIndented}"; # \nException e:\n{exceptionAsStringIndented}";
-    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
-        [stringToPrint]);
-    objDatabaseInterface.connection.commit();    
-    sys.stderr.write(stringToPrint);
-    sys.stderr.flush();
+    handleError("An exception has occurred that has been handled by the top-level of run.py " + \
+                "(note: keyboard interupts have the nasty tendency of leaving the trace empty).");
+
     
 
 objDatabaseInterface.connection.rollback();
