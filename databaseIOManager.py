@@ -85,6 +85,7 @@ class Sqlite3Database(DatabaseInterface):
 
     def open(self):
         self.connection = sqlite3.connect(self.databaseName , \
+                              autocommit=False,\
                               timeout=config.defaultValues.databaseWriteTimeoutLimit);
 
         def dict_factory(cursor, row):
