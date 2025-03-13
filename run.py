@@ -2,6 +2,8 @@ import sqlite3
 import config;
 from utils.contracts import requires, ensures;
 
+import subprocess;
+
 import sys ;
 
 from databaseIOManager import objDatabaseInterface; 
@@ -14,10 +16,33 @@ import os ;
 import traceback; 
 
 objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", ["Starting run.py."]);
-print(str(list(objDatabaseInterface.cursor.execute("SELECT * FROM RunLogsTable"))));
 objDatabaseInterface.connection.commit();
 
+
+
+def getRunContent():
+    dictToWrite=dict();
+    for command in [ ['id'], ['hostname'], ['cat', '/etc/machine-id'], ['pwd']]:
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        if( len(stderr) > 0 or ((process.returncode) is not None and (process.returncode != 0)) ):
+            raise Exception(
+                "The following error occurred while gathering information about the running content using commmand"+ \
+                str(command)+":\n    "+stderr.replace("\n", "\n    ") \
+                );
+        dictToWrite[str(command)] = stdout;
+    return str(dictToWrite);
+
+
+
+
 try:
+
+    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", ["Run context information:" + getRunContent()]);
+    objDatabaseInterface.connection.commit();
+ 
+
+
     cycleNumber=0;
     while(True):
         # objDatabaseInterface.cursor.execute("BEGIN");
@@ -31,7 +56,8 @@ try:
             objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
                 [f"Detected the existance of the flagging-file used to command this daemon to exist, \"{config.defaultValues.nameOfFileToCauseDaemonToExit}\""]);
             objDatabaseInterface.connection.commit();
-    
+            break;    
+
         try:
             print("hi!");
         except:
