@@ -15,6 +15,8 @@ objDatabaseInterface.open();
 import os ;
 import traceback; 
 
+from utils.handleError import handleError;
+
 objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", ["Starting run.py."]);
 objDatabaseInterface.connection.commit();
 
@@ -35,24 +37,10 @@ def getRunContext():
 
 
 
-def handleError(specificMessage : str) -> None:
-    requires(isinstance(specificMessage, str));
-    objDatabaseInterface.connection.rollback();
-    errorMessageIndented = "    " + "".join(traceback.format_exc()).replace("\n", "\n    ");
-    # exceptionAsStringIndented=str(e).replace("\n", "\n    ");
-    stringToPrint=specificMessage +  f"\nDetails:\nTraceback:\n{errorMessageIndented}"; # \nException e:\n{exceptionAsStringIndented}";
-    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
-        [stringToPrint]);
-    objDatabaseInterface.connection.commit();
-    sys.stderr.write(stringToPrint);
-    sys.stderr.flush();
-    return ;
-
-
 def testFunct(*x) -> None:
-    print("strarting test funct",flush=True);
+    print("Starting test funct",flush=True);
     time.sleep(30);
-    print("exitting test funct", flush=True);
+    print("Exitting test funct", flush=True);
 
 routinesToCallAndTheirName=[ \
     (testFunct,"ExampleFunction")
