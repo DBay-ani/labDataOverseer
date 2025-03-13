@@ -10,7 +10,6 @@ from databaseIOManager import objDatabaseInterface;
 
 import time;
 
-objDatabaseInterface.open();
 
 import os ;
 import traceback; 

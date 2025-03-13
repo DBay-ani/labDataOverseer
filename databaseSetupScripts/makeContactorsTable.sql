@@ -1,7 +1,7 @@
 
 
 
-CREATE TABLE ContactorsTable (
+CREATE TABLE IF NOT EXISTS ContactorsTable (
     ID INTEGER PRIMARY KEY AUTOINCREMENT, 
     name TEXT Default "Contactor with Unspecified Name" NOT NULL, 
     contactInfo TEXT NOT NULL,

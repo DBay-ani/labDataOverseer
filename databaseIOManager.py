@@ -159,7 +159,17 @@ class Sqlite3Database(DatabaseInterface):
 
 
 objDatabaseInterface = Sqlite3Database();
-
+objDatabaseInterface.open();
+# Note that the script generating the session table and current session value
+# needs to go before anything else
+for thisScriptFile in [
+        "makeSessionsTableAndFillIt.sql",\
+        "makeContactorsTable.sql",\
+        "makeOutgoingMessageTable.sql",\
+        "makeRunLogsTable.sql"
+    ]:
+    objDatabaseInterface.executeScriptFile(\
+        "databaseSetupScripts/" + thisScriptFile);
 
 def executeDatabaseCommandList(commandsToExecute):
     for thisCommand in commandsToExecute:
