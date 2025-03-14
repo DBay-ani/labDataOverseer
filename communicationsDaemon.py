@@ -60,14 +60,87 @@ objDatabaseInterface.connection.commit();
 #>>> 
 
 
+import uuid;
 
-def testFunct(*x) -> None:
-    print("Starting test funct",flush=True);
-    time.sleep(30);
-    print("Exitting test funct", flush=True);
+def issueReply(originalFileName : str, errorDetected: bool,  contentOfReply : dict, 
+     timeReceivedAsReadableString: str) -> None:
+
+    placeToSaveReply=configs.defaultValues.directory_communication_outgoing + str(uuid.uuid4())+".json";
+
+    fileContent=json.dumps(\
+        {"REPLY_TO":originalFileName, \
+         "ERROR_DETECTED":errorDetected, \
+         "TIME_RECEIVED": timeReceivedAsReadableString, \ 
+         "CONTENT": contentOfReply}, indent=4);
+    fh=open(placeToSaveReply, "w");
+    fh.write(fileContent);
+    fh.close();
+
+    objDatabaseInterface.connection.rollback();
+    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
+        [f"Sent outgoing message \"{placeToSaveReply}\" in reply to initially received message with file name \"{originalFileName}\"."]);
+    objDatabaseInterface.connection.commit();
+
+
+    # TODO: save these communications in table 
+
+def formReplyStatingErrorOccurred(fullPath : str, fileName:str, errorMessageIndented:str, timeReceivedAsReadableString:str) -> None:
+    objDatabaseInterface.connection.rollback();
+    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
+        [f"Issuing reply to received message \"{fullPath}\" indicating error occurred."]);
+    objDatabaseInterface.connection.commit();
+
+    issueReply(fileName, errorDetected=True,  contentOfReply={"ERROR_MESSAGE":errorMessageIndented}, \
+        timeReceivedAsReadableString=timeReceivedAsReadableString);
+ 
+    return; 
+
+
+
+
+def handleMessage(fullPath: str, fileName : str) -> None:
+    requires(fullPath.endswith(fileName));
+
+    objDatabaseInterface.connection.rollback();
+    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
+        [f"Starting to process received message \"{fullPath}\"."]);
+    objDatabaseInterface.connection.commit();
+ 
+    timeReceivedAsReadableString=""; # NOTE THAT THE TIME STRING COULD BE EMPTY IF SOME ERROR OCCURS WITH
+                                     # TRYING TO GET THE FILE MODIFICATION TIME
+    try:
+        timeReceivedAsReadableString=datetime.datetime.fromtimestamp(os.stat(fullPath).st_mtime, datetime.UTC).strftime('m%Mhtw%Hd%dM%my%YtzUTC')
+        # TODO: read message into memory
+        # TODO: save read messages in a table, assumming they are not excessively long (check).
+        # TODO: move message file
+        # TODO: parse message with JSON
+        # TODO: process request
+
+    except:
+        errorMessageIndented=handleError(f"Error while processing received message \"{fullPath}\".");
+        formReplyStatingErrorOccurred(fullPath,fileName, errorMessageIndented, timeReceivedAsReadableString);         
+
+    objDatabaseInterface.connection.rollback();
+    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
+        [f"End of processing received message \"{fullPath}\"."]);
+    objDatabaseInterface.connection.commit();
+
+
+
+def readAndAddressMessages() -> None:
+    for thisF in os.listdir(configs.defaultValues.directory_communication_incoming):
+        if(not os.path.isfile(x)):
+            continue;
+        assert(os.path.exists(thisF));
+        handleMessage(configs.defaultValues.directory_communication_incoming+thisF);   
+    return ;
+
+
+
+
 
 routinesToCallAndTheirName=[ \
-    (testFunct,"ExampleFunction")
+    (readAndAddressMessage,"ReadAndAddressMessages")
 ];
 
 

@@ -5,7 +5,7 @@ from databaseIOManager import objDatabaseInterface;
 import traceback;
 
 
-def handleError(specificMessage : str) -> None:
+def handleError(specificMessage : str) -> str:
     requires(isinstance(specificMessage, str));
     objDatabaseInterface.connection.rollback();
     errorMessageIndented = "    " + "".join(traceback.format_exc()).replace("\n", "\n    ");
@@ -16,6 +16,6 @@ def handleError(specificMessage : str) -> None:
     objDatabaseInterface.connection.commit();
     sys.stderr.write(stringToPrint);
     sys.stderr.flush();
-    return ;
+    return errorMessageIndented;
 
 
