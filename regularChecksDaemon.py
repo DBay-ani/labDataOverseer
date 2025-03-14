@@ -14,7 +14,6 @@ import time;
 import os ;
 import traceback; 
 
-from utils.getRunContext import getRunContext ;
 from utils.handleError import handleError;
 
 thisFileName=(__file__.split("/")[-1]);
@@ -37,9 +36,6 @@ routinesToCallAndTheirName=[ \
 
 try:
 
-    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", ["Run context information:" + getRunContext()]);
-    objDatabaseInterface.connection.commit();
- 
 
     cycleNumber=0;
     while(True):

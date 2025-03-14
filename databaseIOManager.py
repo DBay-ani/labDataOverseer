@@ -40,6 +40,7 @@ import sqlite3
 import config; 
 import pickle;
 import sys;
+from utils.runSystemCall import runSystemCall;
 
 class DatabaseInterface():
 
@@ -158,18 +159,57 @@ class Sqlite3Database(DatabaseInterface):
         return;
 
 
+
+def recordRunContext():
+    objDatabaseInterface.connection.rollback();
+    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", ["Gathering process context information at start of run."); 
+    objDatabaseInterface.connection.commit();
+
+
+    dictToWrite=dict();
+    for command in [ ['id'], ['hostname'], ['cat', '/etc/machine-id'], ['pwd'], ['git', 'status'], ['git', 'log', '-n1'], ['env'], ['git', 'diff', 'HEAD']]:
+        try:
+            stdout=runSystemCall(command);
+        except:
+            fileName=__file__.split("/")[-1];
+            handleError("Handling the following error then continuing. Note: the error was generated when "+\
+                f"making the system call `{command}`  in the `recordRunContext` function in file {fileName}. Error information:\n");
+
+
+        contextKey=repr(command);
+        contextValue=str(stdout); # NOTE: we could consider enforcing length limits here, but for this particular function (which should
+                                  #     only be run once for the process and overseen by the admin starting the scripts etc.),
+                                  #     it is likely unnecessary. For system calls and reading user-provided files more
+                                  #     generally, though, that may be prudent.
+
+        objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (contextKey, contextValue) VALUES (?, ?)", [contextKey, contextValue]); 
+        objDatabaseInterface.connection.commit();
+
+    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", ["Done gathering process context information at start of run."); 
+    objDatabaseInterface.connection.commit();
+        
+    return;
+
+
+
 objDatabaseInterface = Sqlite3Database();
 objDatabaseInterface.open();
 # Note that the script generating the session table and current session value
 # needs to go before anything else
 for thisScriptFile in [
         "makeSessionsTableAndFillIt.sql",\
+        "makeContextTable.sql"
         "makeContactorsTable.sql",\
         "makeOutgoingMessageTable.sql",\
         "makeRunLogsTable.sql"
     ]:
     objDatabaseInterface.executeScriptFile(\
         "databaseSetupScripts/" + thisScriptFile);
+
+    recordRunContext();
+
+
+
 
 def executeDatabaseCommandList(commandsToExecute):
     for thisCommand in commandsToExecute:
