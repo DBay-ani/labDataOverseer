@@ -23,6 +23,42 @@ objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (
 objDatabaseInterface.connection.commit();
 
 
+# check
+# read
+#    move
+#    send to handler
+#       if error, write error-reply
+# read
+# reply
+#    REPLYTO: (name of the file that was put in the inbox)
+#    TIME_READ: 
+#    REPLY:
+#        
+# Considered YAML, but JSON looks better at minor cost of extra syntax
+# 
+# To write the sanitized file text:
+# >>> import json
+# >>> json.dump
+# json.dump(   json.dumps(  
+# >>> json.dumps("fdg ertre t\" ");
+# '"fdg ertre t\\" "'
+# >>> A = json.dumps("fdg ertre t\" ");
+# >>> print(A)
+# "fdg ertre t\" "
+# >>> 
+#
+# For writting out replies:
+#>>> print(json.dumps({1:2,3:{3.1:4.1, 3.2:4.2}, 5:6}, indent=4))
+# {
+#    "1": 2,
+#    "3": {
+#        "3.1": 4.1,
+#        "3.2": 4.2
+#    },
+#    "5": 6
+#}
+#>>> 
+
 
 
 def testFunct(*x) -> None:
@@ -43,12 +79,16 @@ try:
 
     cycleNumber=0;
     while(True):
+
         print(f"{cycleNumber}",flush=True);
-        # objDatabaseInterface.cursor.execute("BEGIN");
-        objDatabaseInterface.connection.rollback();
-        objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
-            [f"Starting Loop Cycle Number {cycleNumber} of this execution of the `{thisFileName}`."]);
-        objDatabaseInterface.connection.commit();
+
+        if(cycleNumber % communicationDaemon_logCycleFrequency == 0):
+            # Not logging every cycle since this is expected to run far more often
+            # than the other Daemon
+            objDatabaseInterface.connection.rollback();
+            objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
+                [f"Starting Loop Cycle Number {cycleNumber} of this execution of the `{thisFileName}`."]);
+            objDatabaseInterface.connection.commit();
 
         if( os.path.exists(config.defaultValues.nameOfFileToCauseDaemonToExit) ):
             objDatabaseInterface.connection.rollback();
@@ -58,25 +98,32 @@ try:
             break;    
 
         for thisSubRoutine, subRoutineName in routinesToCallAndTheirName:
-            objDatabaseInterface.connection.rollback();
-            objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
-                [f"Starting execution of subroutine \"{subRoutineName}\"."]);
-            objDatabaseInterface.connection.commit();
+            if(cycleNumber % communicationDaemon_logCycleFrequency == 0):
+                # Not logging every cycle since this is expected to run far more often
+                # than the other Daemon
+                objDatabaseInterface.connection.rollback();
+                objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
+                    [f"Starting execution of subroutine \"{subRoutineName}\"."]);
+                objDatabaseInterface.connection.commit();
 
             try:
                 thisSubRoutine(objDatabaseInterface);
             except:
                 handleError(f"An exception has occurred while running subroutine {subRoutineName}");
 
-        objDatabaseInterface.connection.rollback();
-        objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
-            [f"Ending Loop Cycle Number {cycleNumber} of this execution of `{thisFileName}`. "+\
-             f"Proceeding to sleep for {config.defaultValues.timeToSleepBetweenChecks} seconds after committing this."]);
-        objDatabaseInterface.connection.commit();
+        if(cycleNumber % communicationDaemon_logCycleFrequency == 0):
+            # Not logging every cycle since this is expected to run far more often
+            # than the other Daemon
+
+            objDatabaseInterface.connection.rollback();
+            objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
+                [f"Ending Loop Cycle Number {cycleNumber} of this execution of `{thisFileName}`. "+\
+                 f"Proceeding to sleep for {config.defaultValues.timeToSleepBetweenChecks} seconds after committing this."]);
+            objDatabaseInterface.connection.commit();
 
         cycleNumber=cycleNumber+1;
 
-        time.sleep(config.defaultValues.timeToSleepBetweenChecks);
+        time.sleep(config.defaultValues.timeToSleepBetweenChecks_communicationDaemon);
 
 except: # The item to the right does not work as hoped to catch KeyboadInterupts it seems...#  Exception as e:
     handleError(f"An exception has occurred that has been handled by the top-level of `{thisFileName}` " + \
