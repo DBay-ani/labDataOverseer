@@ -162,7 +162,7 @@ class Sqlite3Database(DatabaseInterface):
 
 def recordRunContext():
     objDatabaseInterface.connection.rollback();
-    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", ["Gathering process context information at start of run."); 
+    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", ["Gathering process context information at start of run."]); 
     objDatabaseInterface.connection.commit();
 
 
@@ -182,10 +182,10 @@ def recordRunContext():
                                   #     it is likely unnecessary. For system calls and reading user-provided files more
                                   #     generally, though, that may be prudent.
 
-        objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (contextKey, contextValue) VALUES (?, ?)", [contextKey, contextValue]); 
+        objDatabaseInterface.cursor.execute("INSERT INTO SessionContextWhenStarted (contextKey, contextValue) VALUES (?, ?)", [contextKey, contextValue]); 
         objDatabaseInterface.connection.commit();
 
-    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", ["Done gathering process context information at start of run."); 
+    objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", ["Done gathering process context information at start of run."]); 
     objDatabaseInterface.connection.commit();
         
     return;
@@ -198,15 +198,16 @@ objDatabaseInterface.open();
 # needs to go before anything else
 for thisScriptFile in [
         "makeSessionsTableAndFillIt.sql",\
-        "makeContextTable.sql"
+        "makeContextTable.sql", \
         "makeContactorsTable.sql",\
         "makeOutgoingMessageTable.sql",\
         "makeRunLogsTable.sql"
     ]:
     objDatabaseInterface.executeScriptFile(\
         "databaseSetupScripts/" + thisScriptFile);
-
-    recordRunContext();
+    objDatabaseInterface.commit();
+    
+recordRunContext();
 
 
 

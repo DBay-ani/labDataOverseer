@@ -1,6 +1,5 @@
 
 
-
 CREATE TABLE IF NOT EXISTS ContactorsTable (
     ID INTEGER PRIMARY KEY AUTOINCREMENT, 
     name TEXT Default "Contactor with Unspecified Name" NOT NULL, 
@@ -14,6 +13,5 @@ CREATE TABLE IF NOT EXISTS ContactorsTable (
     CHECK( notifyWhenAdditions in (0, 1)),
     CHECK( notifyWhenProblem in (0, 1))
 );
-
 
 

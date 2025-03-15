@@ -1,3 +1,4 @@
+
 CREATE TABLE IF NOT EXISTS OutgoingMessageTable (
     --- actually unneed for the time being - we send things to a list based on the type of message.... # intendedReceipiant INTEGER # FOREIGN KEY (intendedReceipiant) REFERENCES ContactorsTable(ID)
     sessionID INTEGER,
@@ -28,3 +29,4 @@ BEGIN
         sessionID=(SELECT * FROM CurrentSession)
     WHERE ID=new.ID;
 END;
+

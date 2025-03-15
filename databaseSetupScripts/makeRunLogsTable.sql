@@ -1,3 +1,4 @@
+
 CREATE TABLE IF NOT EXISTS RunLogsTable (
     sessionID INTEGER,
     ID INTEGER PRIMARY KEY AUTOINCREMENT, 
@@ -22,3 +23,4 @@ BEGIN
         sessionID=(SELECT * FROM CurrentSession)
     WHERE ID=new.ID;
 END;
+
