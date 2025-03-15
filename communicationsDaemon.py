@@ -115,21 +115,65 @@ def handleMessage(fullPath: str, fileName : str) -> None:
         # TODO: parse message with JSON
         # TODO: process request
 
+        if(not os.path.isfile(x) ):
+            errorMessageIndented=handleError(\
+                f"    Will not / cannot process received message \"{fullPath}\" beyond moving it under directory \"{configs.defaultValues.placeToMoveOldInboxContentTo}\": content is not a file (e.g., is a directory, link, or so forth).");
+            ### would be nice to handle this with actual control flow that is not a hammer, but that prettiness / cleanliness can wait a bit at minimal cost..... #### formReplyStatingErrorOccurred(fullPath,fileName, errorMessageIndented, timeReceivedAsReadableString);
+            raise Exception(errorMessageIndented);           
+        if( os.path.getsize(fullPath) > configs.defaultValues.maxSizeCommunicationWillReadInBytes):
+            errorMessageIndented=handleError(\
+            f"    Will not process received message \"{fullPath}\"  beyond moving it under directory \"{configs.defaultValues.placeToMoveOldInboxContentTo}\": the content is larger than the maximum file size we consider processing, {configs.defaultValues.maxSizeCommunicationWillReadInBytes} bytes.");
+            raise Exception(errorMessageIndented);
+
+        # Note: attempting to read the file might run into permission errors, but
+        # then that would be caught and reported by the try-except block we're in.
+        # TODO: open file for reading        
+        # TODO: save message into table
+        # TODO: attempt to move message 
+
+        # NOTE: we put a seperate try-except block below so that we can  provided 
+        #     the user more feedback on the cause of this issue, since we suspect this
+        #     might be a relatively common cause of problem (at least proportionally among the
+        #     hopefully slim number of issues people have).
+        try:
+           # TODO: attempt reading the JSON file
+        except Exception as e:
+            errorMessage=f"Exception occurred while trying to read / parse the file \"{fullPath}\". Note: often, but not always, this is because the file you"+\
+                " provided has some small syntax mistake that causes it to be invalid JSON - see the rest of this error message to get a further hint as to the cause:\n";   
+            raise Exception(errorMessage);
+
+        # TODO: pass the json to the correct function to handle the request.
+
+         
+        assert(os.path.isfile(x));
     except:
         errorMessageIndented=handleError(f"Error while processing received message \"{fullPath}\".");
         formReplyStatingErrorOccurred(fullPath,fileName, errorMessageIndented, timeReceivedAsReadableString);         
 
     objDatabaseInterface.connection.rollback();
     objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
-        [f"End of processing received message \"{fullPath}\"."]);
+        [f"End of processing of received message \"{fullPath}\"."]);
     objDatabaseInterface.connection.commit();
+    return;
+
+"""
+baseOfCommunicationsLocations="/home/b4ba59dcd2b847bb9b12155facf1f0ce/";
+directory_communication_incoming=baseOfCommunicationsLocations+"tempDataStore/inbox/";
+placeToMoveOldInboxContentTo=baseOfCommunicationsLocations+"tmp/external/";
+directory_communication_outgoing=baseOfCommunicationsLocations+"tempDataStore/outbox/";
 
 
+communicationDaemon_logCycleFrequency=1000;
+timeToSleepBetweenChecks_communicationDaemon=5; # In seconds
+timeToWaitBeforeDeletingOldReceivedMessageFiles=(24 * 3600); # In seconds
+"""
 
 def readAndAddressMessages() -> None:
+    """Note the following:
+    >>> os.listdir.__doc__
+    "Return a list containing the names of the files in the directory.\n\npath can be specified as either str, bytes, or a path-like object.  If path is bytes,\n  the filenames returned will also be bytes; in all other circumstances\n  the filenames returned will be str.\nIf path is None, uses the path='.'.\nOn some platforms, path may also be specified as an open file descriptor;\\\n  the file descriptor must refer to a directory.\n  If this functionality is unavailable, using it raises NotImplementedError.\n\nThe list is in arbitrary order.  It does not include the special\nentries '.' and '..' even if they are present in the directory."
+    """
     for thisF in os.listdir(configs.defaultValues.directory_communication_incoming):
-        if(not os.path.isfile(x)):
-            continue;
         assert(os.path.exists(thisF));
         handleMessage(configs.defaultValues.directory_communication_incoming+thisF);   
     return ;
