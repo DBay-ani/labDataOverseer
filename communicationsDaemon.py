@@ -61,6 +61,12 @@ objDatabaseInterface.connection.commit();
 
 import uuid;
 
+# TODO: consider just having a flie called LAST_CHECKED that is updated any time the 
+#     process checks the folder, and leave the files where they are, only removing those
+#     that are older than a certain amount.... this is instead of, say, moving the files to 
+#     an intermediate directory then doing that stuff....
+
+
 def issueReply(originalFileName : str, errorDetected: bool,  contentOfReply : dict, 
      timeReceivedAsReadableString: str) -> None:
 

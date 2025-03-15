@@ -23,7 +23,7 @@ objDatabaseInterface.connection.commit();
 
 
 
-
+#TODO: add code to clean the received/processed-message folder every so often...
 def testFunct(*x) -> None:
     print("Starting test funct",flush=True);
     time.sleep(30);
