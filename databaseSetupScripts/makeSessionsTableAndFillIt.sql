@@ -1,4 +1,9 @@
 
+
+--- For the below line, see https://stackoverflow.com/a/3020229 ; not sure if the Python interface preserves the
+--- PRAGMA invocation across calls etc.
+PRAGMA foreign_keys = ON;
+
 CREATE TABLE IF NOT EXISTS Sessions (
     ID INTEGER PRIMARY KEY, 
     timeStarted INTEGER DEFAULT CURRENT_TIMESTAMP );

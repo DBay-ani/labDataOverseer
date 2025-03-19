@@ -12,10 +12,12 @@ CREATE TABLE IF NOT EXISTS MessageTable (
     timeSent REAL , --- might not be applicable to all messages - specifically those received instead of sent....
     status TEXT NOT NULL,
     message TEXT NOT NULL,
-    isFileBasedCommunication INTEGER NOT NULL,
     isGeneralMaintenceAndInfo INTEGER NOT NULL,
     isDataAddition INTEGER NOT NULL,
     isProblem INTEGER NOT NULL,
+    IDOfSpecificOtherEndpointIfApplicable INTEGER, 
+    FOREIGN KEY( IDOfSpecificOtherEndpointIfApplicable ) REFERENCES ContactorsTable (ID), --- Note that since we did not add a NOT NULL
+        --- constraint to IDOfSpecificOtherEndpointIfApplicable, it is allowed to be NULL despite this FOREIGN KEY contraint.
     FOREIGN KEY( sessionID ) REFERENCES Sessions(ID),
     CHECK( isFileBasedCommunication in (0,1)),
     CHECK( isReceivedAsOppossedToSent in (0,1)),

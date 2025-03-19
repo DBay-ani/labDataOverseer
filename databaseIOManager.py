@@ -200,7 +200,7 @@ for thisScriptFile in [
         "makeSessionsTableAndFillIt.sql",\
         "makeContextTable.sql", \
         "makeContactorsTable.sql",\
-        "makeOutgoingMessageTable.sql",\
+        "makeMessageTable.sql",\
         "makeRunLogsTable.sql"
     ]:
     objDatabaseInterface.executeScriptFile(\
