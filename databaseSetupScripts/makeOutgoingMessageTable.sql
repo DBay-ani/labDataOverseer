@@ -1,18 +1,25 @@
 
-CREATE TABLE IF NOT EXISTS OutgoingMessageTable (
+--- CLEARLY this table could be refactored in a number of ways, particularly into better atoms,
+--- but as mentioned in the commit message for f6501adb9e910da965c65eaa8e45ce74a955c996,
+--- the calculas of the group at present makes one lean towards this design - which is 
+--- more specific to the use case - then a ore general and cleaner one.
+
+CREATE TABLE IF NOT EXISTS MessageTable (
     --- actually unneed for the time being - we send things to a list based on the type of message.... # intendedReceipiant INTEGER # FOREIGN KEY (intendedReceipiant) REFERENCES ContactorsTable(ID)
     sessionID INTEGER,
     ID INTEGER PRIMARY KEY AUTOINCREMENT, 
     timeAdded REAL, 
-    timeSent REAL ,
-    otherParty INTEGER
+    timeSent REAL , --- might not be applicable to all messages - specifically those received instead of sent....
     status TEXT NOT NULL,
     message TEXT NOT NULL,
+    isFileBasedCommunication INTEGER NOT NULL,
     isGeneralMaintenceAndInfo INTEGER NOT NULL,
     isDataAddition INTEGER NOT NULL,
     isProblem INTEGER NOT NULL,
     FOREIGN KEY( sessionID ) REFERENCES Sessions(ID),
-    CHECK(status in ('pending', 'error', 'sent')),
+    CHECK( isFileBasedCommunication in (0,1)),
+    CHECK( isReceivedAsOppossedToSent in (0,1)),
+    CHECK(status in ('pending_send', 'error_sending', 'sent', 'received')),
     CHECK( isGeneralMaintenceAndInfo in (0,1)),
     CHECK( isDataAddition in (0,1) ),
     CHECK( isProblem in (0,1)),
