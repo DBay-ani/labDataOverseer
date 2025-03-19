@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS OutgoingMessageTable (
     ID INTEGER PRIMARY KEY AUTOINCREMENT, 
     timeAdded REAL, 
     timeSent REAL ,
+    otherParty INTEGER
     status TEXT NOT NULL,
     message TEXT NOT NULL,
     isGeneralMaintenceAndInfo INTEGER NOT NULL,
