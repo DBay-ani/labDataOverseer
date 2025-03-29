@@ -19,8 +19,6 @@ CREATE TABLE IF NOT EXISTS MessageTable (
     FOREIGN KEY( IDOfSpecificOtherEndpointIfApplicable ) REFERENCES ContactorsTable (ID), --- Note that since we did not add a NOT NULL
         --- constraint to IDOfSpecificOtherEndpointIfApplicable, it is allowed to be NULL despite this FOREIGN KEY contraint.
     FOREIGN KEY( sessionID ) REFERENCES Sessions(ID),
-    CHECK( isFileBasedCommunication in (0,1)),
-    CHECK( isReceivedAsOppossedToSent in (0,1)),
     CHECK(status in ('pending_send', 'error_sending', 'sent', 'received')),
     CHECK( isGeneralMaintenceAndInfo in (0,1)),
     CHECK( isDataAddition in (0,1) ),

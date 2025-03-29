@@ -1,7 +1,7 @@
-CREATE TABLE Datasets (
+CREATE TABLE IF NOT EXISTS Datasets (
     sessionID INTEGER,
     ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT PRIMARY KEY, 
+    name TEXT UNIQUE NOT NULL, --- SQLite3 seems to restrict to one primary key... ---- PRIMARY KEY, 
     timeStarted INTEGER DEFAULT CURRENT_TIMESTAMP NOT NULL,
     misc TEXT, 
     FOREIGN KEY( sessionID ) REFERENCES Sessions(ID)
@@ -16,10 +16,10 @@ BEGIN
 END;
 
 
-CREATE TABLE DataContentType (
+CREATE TABLE IF NOT EXISTS DataContentType (
     ID INTEGER PRIMARY KEY AUTOINCREMENT,
     sessionID INTEGER,
-    name TEXT PRIMARY KEY,
+    name TEXT  UNIQUE NOT NULL, --- SQLite3 seems to restrict to one primary key... ---- PRIMARY KEY,
     misc TEXT,
     FOREIGN KEY( sessionID ) REFERENCES Sessions(ID)
     );
@@ -31,20 +31,20 @@ BEGIN
         sessionID=(SELECT * FROM CurrentSession)
     WHERE ID=new.ID;
 END;
-INSERT INTO OR ABORT DataContentType ( name, misc) 
+INSERT OR IGNORE INTO DataContentType ( name, misc) 
 VALUES
     ( 'OFP', 'orange fluorescent protein'),
     ( 'BFP', 'blue fluorescent protein'),
     ( 'google_sheet', 'The Google sheet that the data collector/experimenter used to record the conditions collected.'),
     ( 'mNeptune', NULL),
-    ( 'free_moving', NULL), --- TODO
+    ( 'freely_moving', NULL), --- TODO
     ( 'NIR', 'Near Infrared recording of the E Elegans worm while freely moving.');
 
 ---- rowID, sessionID, datasetID, filePath , dateRecordADded , dataRecordType, misc (TEXT)
-CREATE TABLE DatasetContent (
+CREATE TABLE IF NOT EXISTS DatasetContent (
     sessionID INTEGER,
     rowID INTEGER PRIMARY KEY AUTOINCREMENT,
-    location TEXT PRIMARY KEY, -- file path or URL....
+    location TEXT  UNIQUE NOT NULL, --- SQLite3 seems to restrict to one primary key... ---- PRIMARY KEY, -- file path or URL....
     timeAdded INTEGER DEFAULT CURRENT_TIMESTAMP NOT NULL,
     datasetMemberOf INTEGER NOT NULL, 
     dataRecordType INTEGER NOT NULL, 
@@ -53,7 +53,7 @@ CREATE TABLE DatasetContent (
     FOREIGN KEY( dataRecordType ) REFERENCES DataContentType(ID)
     FOREIGN KEY( sessionID ) REFERENCES Sessions(ID)
     );
-CREATE TEMP TRIGGER AddSessionInfo_Datasets
+CREATE TEMP TRIGGER AddSessionInfo_DatasetContent
 AFTER INSERT ON Datasets
 FOR EACH ROW 
 BEGIN
@@ -62,13 +62,13 @@ BEGIN
     WHERE rowID=new.rowID;
 END;
 
-CREATE VIEW DatasetAndMostRecentIndividualFiles(
+CREATE VIEW IF NOT EXISTS DatasetAndMostRecentIndividualFiles(
     datasetID,
     datasetName,
     dataContentTypeName,
     location
     )
-SELECT 
+AS SELECT 
     A1.ID,
     A1.name,
     B1.name,
@@ -76,18 +76,18 @@ SELECT
 FROM
     Datasets AS A1,
     DataContentType AS B1,
-    DatasetContent as C1,
+    DatasetContent as C1
 WHERE
     C1.dataRecordType=B1.ID AND
     C1.datasetMemberOf = A1.ID
 GROUP BY 
-    A1.datasetID,
+    A1.ID,
     B1.ID
 HAVING
     C1.timeAdded = max(C1.timeAdded);
 
 
-CREATE VIEW DatasetAndMostRecentFiles (
+CREATE VIEW IF NOT EXISTS DatasetAndMostRecentFiles (
     datasetID,
     datasetName,
     OFP,
@@ -97,7 +97,7 @@ CREATE VIEW DatasetAndMostRecentFiles (
     freely_moving,
     NIR
     )
-SELECT 
+AS SELECT 
     A1.ID,
     A1.name,
     B1.location,
@@ -106,13 +106,21 @@ SELECT
     B4.location,
     B5.location,
     B6.location
+FROM
+    Datasets AS A1,
+    DatasetAndMostRecentIndividualFiles AS B1,
+    DatasetAndMostRecentIndividualFiles AS B2,
+    DatasetAndMostRecentIndividualFiles AS B3,
+    DatasetAndMostRecentIndividualFiles AS B4,
+    DatasetAndMostRecentIndividualFiles AS B5,
+    DatasetAndMostRecentIndividualFiles AS B6
 WHERE
-    B1.datasetMemberOf=A1.ID AND
-    B2.datasetMemberOf=A1.ID AND
-    B3.datasetMemberOf=A1.ID AND
-    B4.datasetMemberOf=A1.ID AND
-    B5.datasetMemberOf=A1.ID AND
-    B6.datasetMemberOf=A1.ID AND
+    B1.datasetID=A1.ID AND
+    B2.datasetID=A1.ID AND
+    B3.datasetID=A1.ID AND
+    B4.datasetID=A1.ID AND
+    B5.datasetID=A1.ID AND
+    B6.datasetID=A1.ID AND
     B1.dataContentTypeName='OFP' AND
     B2.dataContentTypeName='BFP' AND
     B3.dataContentTypeName='google_sheet' AND

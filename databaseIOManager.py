@@ -213,14 +213,15 @@ for thisScriptFile in [
         "makeContextTable.sql", \
         "makeContactorsTable.sql",\
         "makeMessageTable.sql",\
-        "makeRunLogsTable.sql"
+        "makeRunLogsTable.sql", \
+        "datasets.sql"
     ]:
     objDatabaseInterface.executeScriptFile(\
         "databaseSetupScripts/" + thisScriptFile);
     objDatabaseInterface.commit();
     
 recordRunContext();
-attemptSetDefaultValues();
+# attemptSetDefaultValues();
 
 
 
