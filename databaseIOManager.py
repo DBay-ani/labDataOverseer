@@ -191,6 +191,18 @@ def recordRunContext():
     return;
 
 
+from typing import Tuple, Any
+
+def attemptSetDefaultValues(objDatabaseInterface):
+    commandsAndVars : List[Tuple[str, Any]]= [\
+        "" 
+
+    ]; 
+    for thisCommand, theseVars in commandsAndVars:
+        objDatabaseInterface.cursor.execute(thisCommand, theseVars);
+    
+    return;
+
 
 objDatabaseInterface = Sqlite3Database();
 objDatabaseInterface.open();
@@ -208,7 +220,7 @@ for thisScriptFile in [
     objDatabaseInterface.commit();
     
 recordRunContext();
-
+attemptSetDefaultValues();
 
 
 

@@ -28,7 +28,7 @@ def getMessagesCurrentlyPendingSend():
 SELECT B.ID, B.message, A.name, A.contactInfo 
 FROM 
     Contactors AS A, 
-    OutgoingMessageTable AS B  
+    MessageTable AS B  
 WHERE 
     B.status = 'pending'  AND
     ( 
@@ -37,7 +37,7 @@ WHERE
         ( (A.notifyWhenProblem = 1) AND (B.isProblem = 1)) 
 );
 
-SELECT ID, message, status FROM OutgoingMessageTable WHERE isGeneralMaintenceAndInfo = 0 AND isDataAddition = 0 AND isProblem = 0 ;
+SELECT ID, message, status FROM MessageTable WHERE isGeneralMaintenceAndInfo = 0 AND isDataAddition = 0 AND isProblem = 0 ;
     change status to error
 select the ones labeled "error", summarize them and send...    
 

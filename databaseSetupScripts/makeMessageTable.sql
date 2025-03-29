@@ -30,11 +30,11 @@ CREATE TABLE IF NOT EXISTS MessageTable (
 );
 --- Below needs to be a temp trigger since CurrentSession is a temporary table, whose 
 --- value we use below. 
-CREATE TEMP TRIGGER AddTimingInfo_OutgoingMessage
-AFTER INSERT ON OutgoingMessageTable
+CREATE TEMP TRIGGER AddTimingInfo_Message
+AFTER INSERT ON MessageTable
 FOR EACH ROW 
 BEGIN
-    UPDATE OutgoingMessageTable SET 
+    UPDATE MessageTable SET 
         timeAdded=unixepoch('subsec','utc') ,
         sessionID=(SELECT * FROM CurrentSession)
     WHERE ID=new.ID;
