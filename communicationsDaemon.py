@@ -64,11 +64,11 @@ objDatabaseInterface.connection.commit();
 
 import uuid;
 
-from interface_dfe6f45f_265d_470d_bcdb_66d1e6dcdc39 import interfac_dfe6__dc39__sweet_orchestra;
+from interface_dfe6f45f_265d_470d_bcdb_66d1e6dcdc39 import interface_dfe6__dc39__sweet_orchestra;
 
 # Starting with a double underscore in the below variable name so that the content can't be accidentally
 # imported elsewhere
-__listOfAvailableInterfaces=[interfac_dfe6__dc39__sweet_orchestra];
+__listOfAvailableInterfaces=[interface_dfe6__dc39__sweet_orchestra];
 
 # TODO: consider just having a flie called LAST_CHECKED that is updated any time the 
 #     process checks the folder, and leave the files where they are, only removing those
@@ -228,7 +228,8 @@ def handleMessage(fullPath: str, fileName : str) -> None:
                              str(type(readJSONContent["interface_id"])));
 
 
-        
+        # TODO(19e8f005-450a-4790-9ee9-0eead5001b4c): make case-insensative key-match (which of course also involves signalling error
+        #     if there is a key-clash).
         matchingInterface=[thisInterface for thisInterface in __listOfAvailableInterfaces \
                            if (thisInterface.get_human_readable_name() == readJSONContent["interface_id"])];
         if(len(matchingInterface) == 0):
@@ -239,13 +240,12 @@ def handleMessage(fullPath: str, fileName : str) -> None:
         assert(len(matchingInterface) == 1);
         # On the below line, the () are to instantiate an instance of the class, since above
         # we only dealt with the static methods of the class.
-        matchingInterface[0]().process(readJSONContent);
+        contentReceivedBack=matchingInterface[0]().process(readJSONContent);
+        issueReply(fullPath, \
+            errorDetected=False, \
+            contentOfReply=contentReceivedBack, \
+            timeReceivedAsReadableString=timeReceivedAsReadableString);
         
-        
-
-        contentOfReply={"message": "Data added successfully to database. Issue request for `ls` to it listed."}
-        issueReply(fileName, False,  contentOfReply, 
-            timeReceivedAsReadableString)
     except:
         errorMessageIndented=handleError(f"Error while processing received message \"{fullPath}\".");
         formReplyStatingErrorOccurred(fullPath,fileName, errorMessageIndented, timeReceivedAsReadableString);         
