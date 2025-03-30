@@ -196,7 +196,10 @@ def attemptSetDefaultValues(objDatabaseInterface):
     commandsAndVars : List[Tuple[str, Tuple[Any,...]]]= [\
         ("INSERT OR IGNORE INTO ContactorsTable (" +\
             "name, contactInfo, notifyAboutGeneralMaintenceAndInfo, notifyWhenAdditions, notifyWhenProblem, endpointType) "+ \
-            "VALUES (?, ?, ?, ?, ?, ?)", ('DefaultMessageReceptionPoint', config.defaultValues.directory_communication_incoming, 0, 0, 0, 'file_directory') ) \
+            "VALUES (?, ?, ?, ?, ?, ?)", ('DefaultMessageReceptionPoint', config.defaultValues.directory_communication_incoming, 0, 0, 0, 'file_directory') ), \
+        ("INSERT OR IGNORE INTO ContactorsTable (" +\
+            "name, contactInfo, notifyAboutGeneralMaintenceAndInfo, notifyWhenAdditions, notifyWhenProblem, endpointType) "+ \
+            "VALUES (?, ?, ?, ?, ?, ?)", ('DefaultLocationToSendMessagesReceivedAtDefaultMessageReceptionPoint', config.defaultValues.directory_communication_outgoing, 0, 0, 0, 'file_directory') ) \
     ]; 
     for thisCommand, theseVars in commandsAndVars:
         objDatabaseInterface.cursor.execute(thisCommand, theseVars);
@@ -228,6 +231,7 @@ for thisScriptFile in [
     
 recordRunContext();
 attemptSetDefaultValues(objDatabaseInterface);
+objDatabaseInterface.commit();
 
 
 

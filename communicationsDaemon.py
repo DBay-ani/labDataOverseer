@@ -64,6 +64,12 @@ objDatabaseInterface.connection.commit();
 
 import uuid;
 
+from interface_dfe6f45f_265d_470d_bcdb_66d1e6dcdc39 import interfac_dfe6__dc39__sweet_orchestra;
+
+# Starting with a double underscore in the below variable name so that the content can't be accidentally
+# imported elsewhere
+__listOfAvailableInterfaces=[interfac_dfe6__dc39__sweet_orchestra];
+
 # TODO: consider just having a flie called LAST_CHECKED that is updated any time the 
 #     process checks the folder, and leave the files where they are, only removing those
 #     that are older than a certain amount.... this is instead of, say, moving the files to 
@@ -73,7 +79,12 @@ import uuid;
 def issueReply(originalFileName : str, errorDetected: bool,  contentOfReply : dict, 
      timeReceivedAsReadableString: str) -> None:
 
-    placeToSaveReply=config.defaultValues.directory_communication_outgoing + str(uuid.uuid4())+".json";
+    placeToSaveReply=config.defaultValues.directory_communication_outgoing + \
+        "REPLY_FOR_" + originalFileName + "_SENT_"+str(time.ctime().replace(" ","_").replace(":", "-")) + ".json";
+
+    # TODO (in future iterations): record in the message table as pending and
+    # update it to sent further below....
+
 
     fileContent=json.dumps(\
         {"REPLY_TO":originalFileName, \
@@ -90,7 +101,20 @@ def issueReply(originalFileName : str, errorDetected: bool,  contentOfReply : di
     objDatabaseInterface.connection.commit();
 
 
-    # TODO: save these communications in table 
+    # The below line/two lines forming IDForEndpointSentTo are a mess.... also, 
+    # the TODO(8691d5f6-3a7f-4dac-acea-d4b71b32e99f) below might be usefule, since the information provided
+    # on the below line should come in earlier etc.
+    IDForEndpointSentTo= [x for x in objDatabaseInterface.cursor.execute(\
+        "SELECT ID FROM ContactorsTable WHERE name=?", ["DefaultLocationToSendMessagesReceivedAtDefaultMessageReceptionPoint"])][0]["ID"];
+    objDatabaseInterface.cursor.execute("""
+        INSERT INTO MessageTable ( status, message, isGeneralMaintenceAndInfo, 
+            isProblem, IDOfSpecificOtherEndpointIfApplicable )  
+        VALUES (?, ?, ?, ?, ?)""", \
+        ["sent", fileContent, 0, 1, IDForEndpointSentTo ]);
+    objDatabaseInterface.connection.commit();
+
+    return;
+
 
 def formReplyStatingErrorOccurred(fullPath : str, fileName:str, errorMessageIndented:str, timeReceivedAsReadableString:str) -> None:
     objDatabaseInterface.connection.rollback();
@@ -172,7 +196,9 @@ def handleMessage(fullPath: str, fileName : str) -> None:
         # happens to have the same name.
         # This moving is meant as a convieniance and indicator to the user, not any deeper form of 
         # content backup.
-        newLocationForFile=config.defaultValues.placeToMoveOldInboxContentTo + fileName;
+        newLocationForFile=config.defaultValues.placeToMoveOldInboxContentTo + \
+            "RECIEVIED_AT_"+str(time.ctime().replace(" ","_").replace(":", "-")) +"__"+ fileName;
+        
         os.replace(fullPath, newLocationForFile);
         objDatabaseInterface.connection.rollback();
         objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
@@ -193,7 +219,29 @@ def handleMessage(fullPath: str, fileName : str) -> None:
                 " provided has some small syntax mistake that causes it to be invalid JSON - see the rest of this error message to get a further hint as to the cause:\n";   
             raise Exception(errorMessage);
 
-        # TODO: pass the json to the correct function to handle the request.
+        assert(isinstance(readJSONContent,dict));
+        if("interface_id" not in readJSONContent):
+            raise Exception("The JSON file provided does not specify a value for key \"interface_id\" " + \
+                            "(without this, we don't know how the rest of the file should be interpretted).");
+        if(not isinstance(readJSONContent["interface_id"], str)):
+            raise Exception("The interface_id provided is not text, but instead is of type "+\
+                             str(type(readJSONContent["interface_id"])));
+
+
+        
+        matchingInterface=[thisInterface for thisInterface in __listOfAvailableInterfaces \
+                           if (thisInterface.get_human_readable_name() == readJSONContent["interface_id"])];
+        if(len(matchingInterface) == 0):
+            raise Exception("The interface_id specified does not match any interface available.");
+        elif(len(matchingInterface) > 1):
+            raise Exception("The iterface_id provided matches more than one interface available. "+\
+                            f"Number matching: {matchingInterface}. Speak to a server admin about this.");
+        assert(len(matchingInterface) == 1);
+        # On the below line, the () are to instantiate an instance of the class, since above
+        # we only dealt with the static methods of the class.
+        matchingInterface[0]().process(readJSONContent);
+        
+        
 
         contentOfReply={"message": "Data added successfully to database. Issue request for `ls` to it listed."}
         issueReply(fileName, False,  contentOfReply, 
