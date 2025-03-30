@@ -5,8 +5,17 @@ import typing;
 
 class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
 
+    def __init__(self):
+        super().__init__();
+        self.keysForContentToRead : typing.FrozenSet[str]=\
+            frozenset(["base_path", "freely_moving", "all_red", "mNeptune", "OFP", "BFP", "google_sheet", "worm_sex", "worm_strain"]);
+        self.keysForFilesInContentToRead : typing.FrozenSet[str]=self.keysForContentToRead.difference(["base_path", "worm_sex", "worm_strain", "google_sheet"]);
+        self.keysForURLsInContentToRead : typing.FrozenSet[str]=frozenset(["google_sheet"]);
+        self.keysForMetadataInContent : typing.FrozenSet[str]=frozenset(["worm_sex", "worm_strain"]);
+        return ;
+
     @staticmethod
-    def get_human_readable_name():
+    def get_human_readable_name() -> str:
         return "sweet_orchestra_polite_turbot";
 
     def process(self, inputVal):
@@ -36,21 +45,33 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
         self.checkAndRaiseErrorIfUnknownAdditionalKeys(\
             "at top-level of the received message's JSON.", inputVal, frozenset(["interface_id","request","content"]));
         contentToRecord=inputVal["content"];
-        keysForContentToRead=\
-            frozenset(["base_path", "freely_moving", "all_red", "mNeptune", "OFP", "BFP", "google_sheet", "worm_sex", "worm_strain"]);
+
         self.checkAndRaiseErrorIfUnknownAdditionalKeys(\
-            "in the \"content\" dictionary", contentToRecord, keysForContentToRead);        
-        for thisKey in keysForContentToRead:
+            "in the \"content\" dictionary", contentToRecord, self.keysForContentToRead);        
+        for thisKey in self.keysForContentToRead:
             if(not isinstance(contentToRecord[thisKey],str)):
                 raise Exception(f"In the \"content\" dictionary, the value of the key \"{thisKey}\" is not a string."+\
                                 " Type found for the value:"+str(type(contentToRecord[thisKey])));
             if(len(contentToRecord[thisKey]) ==0):
                 raise Exception(f"In the \"content\" dictionary, the value of the key \"{thisKey}\" is an empty string.");
-        if(contentToRecord[thisKey]["worm_sex"] not in {"h","m"}):
+        if(contentToRecord["worm_sex"] not in {"h","m"}):
             raise Exception("Unknown value specified for \"worm_sex\". "+\
                             "We expect either \"h\" for hermaphrodite or \"m\" for male." + \
                             "Value found:\""+contentToRecord[thisKey]["worm_sex"]+"\"");
     
+
+        
+
+        basePathForFiles= contentToRecord["base_path"];
+        if(len(basePathForFiles) < 1):
+            raise Exception("Value for \"base_path\" provided is invalid");
+        if(basePathForFiles[-1] != "/"):
+            basePathForFiles=basePathForFiles+"/";
+        
+        for thisKey in self.keysForFilesInContentToRead:
+            thisFullPath= basePathForFiles + contentToRecord[thisKey];
+        
+
         raise NotImplementedError();
         #TODO: 
         #     assemble the full file paths

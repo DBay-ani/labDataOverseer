@@ -3,8 +3,14 @@ CREATE TABLE IF NOT EXISTS Datasets (
     ID INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL, --- SQLite3 seems to restrict to one primary key... ---- PRIMARY KEY, 
     timeStarted INTEGER DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    --- The use of the below two fields are a bit over-fitted to our current use, 
+    --- but likely they can be refactored out later
+    worm_sex TEXT NOT NULL,
+    worm_strain TEXT NOT NULL,
     misc TEXT, 
-    FOREIGN KEY( sessionID ) REFERENCES Sessions(ID)
+    FOREIGN KEY( sessionID ) REFERENCES Sessions(ID),
+    CHECK(worm_sex in ("h", "m")),
+    CHECK(length(worm_strain) > 0)
     );
 CREATE TEMP TRIGGER AddSessionInfo_Datasets
 AFTER INSERT ON Datasets
@@ -57,7 +63,7 @@ CREATE TEMP TRIGGER AddSessionInfo_DatasetContent
 AFTER INSERT ON Datasets
 FOR EACH ROW 
 BEGIN
-    UPDATE Datasets SET 
+    UPDATE DatasetContent SET 
         sessionID=(SELECT * FROM CurrentSession)
     WHERE rowID=new.rowID;
 END;
@@ -90,6 +96,8 @@ HAVING
 CREATE VIEW IF NOT EXISTS DatasetAndMostRecentFiles (
     datasetID,
     datasetName,
+    worm_sex,
+    worm_strain,
     OFP,
     BFP,
     google_sheet,
@@ -100,6 +108,8 @@ CREATE VIEW IF NOT EXISTS DatasetAndMostRecentFiles (
 AS SELECT 
     A1.ID,
     A1.name,
+    A1.worm_sex,
+    A1.worm_strain,
     B1.location,
     B2.location,
     B3.location,
@@ -128,5 +138,42 @@ WHERE
     B5.dataContentTypeName='freely_moving' AND
     B6.dataContentTypeName='NIR';
 
-
+CREATE TEMP TRIGGER InsertInto_DatasetAndMostRecentFiles
+INSTEAD OF INSERT ON DatasetAndMostRecentFiles
+FOR EACH ROW 
+BEGIN
+    INSERT INTO Datasets(ID, name,
+        worm_sex, worm_strain)
+    VALUES (new.datasetID, new.datasetName, new.worm_sex, new.worm_strain);
+    INSERT INTO DatasetContent (datasetMemberOf, location, dataRecordType )
+    VALUES
+        ( new.datasetID, 
+          new.OFP,
+          (SELECT ID from DataContentType WHERE name = 'OFP') );
+    INSERT INTO DatasetContent ( datasetMemberOf, location, dataRecordType )
+    VALUES
+        ( new.datasetID, 
+          new.BFP,
+          (SELECT ID from DataContentType WHERE name = 'BFP') );
+    INSERT INTO DatasetContent ( datasetMemberOf, location, dataRecordType )
+    VALUES
+        ( new.datasetID, 
+          new.google_sheet,
+          (SELECT ID from DataContentType WHERE name = 'google_sheet') );
+    INSERT INTO DatasetContent ( datasetMemberOf, location, dataRecordType )
+    VALUES
+        ( new.datasetID, 
+          new.mNeptune,
+          (SELECT ID from DataContentType WHERE name = 'mNeptune') );
+    INSERT INTO DatasetContent (datasetMemberOf, location, dataRecordType)
+    VALUES
+        ( new.datasetID, 
+          new.freely_moving,
+          (SELECT ID from DataContentType WHERE name = 'freely_moving') );
+    INSERT INTO DatasetContent (datasetMemberOf, location, dataRecordType)
+    VALUES
+        ( new.datasetID, 
+          new.NIR,
+          (SELECT ID from DataContentType WHERE name = 'NIR') );
+END;
 
