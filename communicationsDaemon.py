@@ -9,7 +9,7 @@ import sys ;
 from databaseIOManager import objDatabaseInterface; 
 
 import time;
-
+import typing;
 
 import os ;
 import traceback; 
@@ -115,34 +115,76 @@ def handleMessage(fullPath: str, fileName : str) -> None:
                                      # TRYING TO GET THE FILE MODIFICATION TIME
     try:
         timeReceivedAsReadableString=datetime.datetime.fromtimestamp(os.stat(fullPath).st_mtime, datetime.UTC).strftime('m%Mhtw%Hd%dM%my%YtzUTC')
-        # TODO: read message into memory
-        # TODO: save read messages in a table, assumming they are not excessively long (check).
-        # TODO: move message file
-        # TODO: parse message with JSON
-        # TODO: process request
+        
+        # TODO(8691d5f6-3a7f-4dac-acea-d4b71b32e99f): rewrite this to read from the database the location and endpoint type of 
+        #     DefaultMessageReceptionPoint and, based on that information, read from the correct place
+        #     and do so in the correct fashion.
 
-        if(not os.path.isfile(x) ):
+        # Note: attempting to read or accese metadata about the file might run into permission errors, but
+        # then that would be caught and reported by the try-except block we're in.
+        if(not os.path.isfile(fullPath) ):
             errorMessageIndented=handleError(\
                 f"    Will not / cannot process received message \"{fullPath}\" beyond moving it under directory \"{configs.defaultValues.placeToMoveOldInboxContentTo}\": content is not a file (e.g., is a directory, link, or so forth).");
             ### would be nice to handle this with actual control flow that is not a hammer, but that prettiness / cleanliness can wait a bit at minimal cost..... #### formReplyStatingErrorOccurred(fullPath,fileName, errorMessageIndented, timeReceivedAsReadableString);
             raise Exception(errorMessageIndented);           
+        assert(os.path.isfile(fullPath));
         if( os.path.getsize(fullPath) > configs.defaultValues.maxSizeCommunicationWillReadInBytes):
             errorMessageIndented=handleError(\
-            f"    Will not process received message \"{fullPath}\"  beyond moving it under directory \"{configs.defaultValues.placeToMoveOldInboxContentTo}\": the content is larger than the maximum file size we consider processing, {configs.defaultValues.maxSizeCommunicationWillReadInBytes} bytes.");
+            f"    Will not process received message \"{fullPath}\": the content is larger than the maximum file size we consider processing, {configs.defaultValues.maxSizeCommunicationWillReadInBytes} bytes.");
+            ### We considered adding the log to move the file, but doing that in a way that also ensure recordinf of errors and robustness is effort not best spent right now.....# f"    Will not process received message \"{fullPath}\"  beyond moving it under directory \"{configs.defaultValues.placeToMoveOldInboxContentTo}\": the content is larger than the maximum file size we consider processing, {configs.defaultValues.maxSizeCommunicationWillReadInBytes} bytes.");
             raise Exception(errorMessageIndented);
 
-        # Note: attempting to read the file might run into permission errors, but
-        # then that would be caught and reported by the try-except block we're in.
-        # TODO: open file for reading        
-        # TODO: save message into table
-        # TODO: attempt to move message 
+
+        fh=open(fullPath, "rb");
+        fhContent=fh.read(configs.maxSizeCommunicationWillReadInBytes);
+        if(len(fh.read()) > 0):
+            fh.close();
+            raise Exception(f"Content in file \"{fullPath}\" which was provided as a request to the system, is larger"+\
+                            f" than the maximum size we're willing to process of {configs.maxSizeCommunicationWillReadInBytes}.");
+        fh.close();
+
+        objDatabaseInterface.connection.rollback();
+        objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
+            [f"Read \"{fullPath}\" into memory; length of content: {len(fullPath)}."]);
+        objDatabaseInterface.connection.commit();
+        
+        # The below line/two lines forming IDForEndpointReadFrom are a mess.... also, 
+        # see TODO(8691d5f6-3a7f-4dac-acea-d4b71b32e99f) above, since the information provided
+        # on the below line should come in earlier etc.
+        IDForEndpointReadFrom= [x for x in objDatabaseInterface.cursor.execute(\
+            "SELECT ID FROM ContactorsTable WHERE name=?", ["DefaultMessageReceptionPoint"])][0]["ID"];
+        objDatabaseInterface.cursor.execute("""
+            INSERT INTO MessageTable ( status, message, isGeneralMaintenceAndInfo, 
+                isProblem, IDOfSpecificOtherEndpointIfApplicable )  
+            VALUES (?, ?, ?, ?, ?, ?)""", \
+            ["received", fhContent, 0, 0, IDForEndpointReadFrom ]);
+        objDatabaseInterface.connection.commit();
+
+        objDatabaseInterface.connection.rollback();
+        objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
+            [f"Saved message \"{fullPath}\" into database table \"MessageTable\"."]);
+        objDatabaseInterface.connection.commit();
+
+        # Note that the below can - and should - be able to replace in the target location and file that
+        # happens to have the same name.
+        # This moving is meant as a convieniance and indicator to the user, not any deeper form of 
+        # content backup.
+        newLocationForFile=config.defaultValues.placeToMoveOldInboxContentTo + fileName;
+        os.replace(fullPath, newLocationForFile);
+        objDatabaseInterface.connection.rollback();
+        objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", \
+            [f"Moved \"{fullPath}\" to {newLocationForFile}."]);
+        objDatabaseInterface.connection.commit();
+
 
         # NOTE: we put a seperate try-except block below so that we can  provided 
         #     the user more feedback on the cause of this issue, since we suspect this
         #     might be a relatively common cause of problem (at least proportionally among the
         #     hopefully slim number of issues people have).
+        readJSONContent:typing.Optional[typing.Dict[str,typing.Any]]=None;
         try:
            # TODO: attempt reading the JSON file
+           readJSONContent=json.loads(fhContent);
         except Exception as e:
             errorMessage=f"Exception occurred while trying to read / parse the file \"{fullPath}\". Note: often, but not always, this is because the file you"+\
                 " provided has some small syntax mistake that causes it to be invalid JSON - see the rest of this error message to get a further hint as to the cause:\n";   
@@ -150,8 +192,9 @@ def handleMessage(fullPath: str, fileName : str) -> None:
 
         # TODO: pass the json to the correct function to handle the request.
 
-         
-        assert(os.path.isfile(x));
+        contentOfReply={"message": "Data added successfully to database. Issue request for `ls` to it listed."}
+        issueReply(fileName, False,  contentOfReply, 
+            timeReceivedAsReadableString)
     except:
         errorMessageIndented=handleError(f"Error while processing received message \"{fullPath}\".");
         formReplyStatingErrorOccurred(fullPath,fileName, errorMessageIndented, timeReceivedAsReadableString);         

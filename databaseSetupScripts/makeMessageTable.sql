@@ -11,9 +11,8 @@ CREATE TABLE IF NOT EXISTS MessageTable (
     timeAdded REAL, 
     timeSent REAL , --- might not be applicable to all messages - specifically those received instead of sent....
     status TEXT NOT NULL,
-    message TEXT NOT NULL,
+    message BLOB NOT NULL,
     isGeneralMaintenceAndInfo INTEGER NOT NULL,
-    isDataAddition INTEGER NOT NULL,
     isProblem INTEGER NOT NULL,
     IDOfSpecificOtherEndpointIfApplicable INTEGER, 
     FOREIGN KEY( IDOfSpecificOtherEndpointIfApplicable ) REFERENCES ContactorsTable (ID), --- Note that since we did not add a NOT NULL
@@ -21,7 +20,6 @@ CREATE TABLE IF NOT EXISTS MessageTable (
     FOREIGN KEY( sessionID ) REFERENCES Sessions(ID),
     CHECK(status in ('pending_send', 'error_sending', 'sent', 'received')),
     CHECK( isGeneralMaintenceAndInfo in (0,1)),
-    CHECK( isDataAddition in (0,1) ),
     CHECK( isProblem in (0,1)),
     CHECK( (timeAdded is NULL) or (timeAdded > 0)),
     CHECK( (timeSent is NULL) or ( (timeAdded is not NULL) and (timeSent >= timeAdded))) ----  not designed to send messages prior to adding to the OutgoingMessage table

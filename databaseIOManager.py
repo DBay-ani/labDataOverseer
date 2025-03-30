@@ -194,9 +194,10 @@ def recordRunContext():
 from typing import Tuple, Any
 
 def attemptSetDefaultValues(objDatabaseInterface):
-    commandsAndVars : List[Tuple[str, Any]]= [\
-        "" 
-
+    commandsAndVars : List[Tuple[str, Tuple[Any,...]]]= [\
+        ("INSERT OR IGNORE INTO ContactorsTable (" +\
+            "name, contactInfo, notifyAboutGeneralMaintenceAndInfo, notifyWhenAdditions, notifyWhenProblem, endpointType) "+ \
+            "VALUES (?, ?, ?, ?, ?, ?)", ('DefaultMessageReceptionPoint', config.defaultValues.directory_communication_incoming, 0, 0, 0, 'file_directory') ) \
     ]; 
     for thisCommand, theseVars in commandsAndVars:
         objDatabaseInterface.cursor.execute(thisCommand, theseVars);
@@ -221,7 +222,7 @@ for thisScriptFile in [
     objDatabaseInterface.commit();
     
 recordRunContext();
-# attemptSetDefaultValues();
+attemptSetDefaultValues(objDatabaseInterface);
 
 
 
