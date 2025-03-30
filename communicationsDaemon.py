@@ -16,6 +16,9 @@ import traceback;
 
 from utils.handleError import handleError;
 
+import json;
+import datetime;
+
 thisFileName=(__file__.split("/")[-1]);
 
 objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", [f"Starting `{thisFileName}` ."]);
@@ -70,12 +73,12 @@ import uuid;
 def issueReply(originalFileName : str, errorDetected: bool,  contentOfReply : dict, 
      timeReceivedAsReadableString: str) -> None:
 
-    placeToSaveReply=configs.defaultValues.directory_communication_outgoing + str(uuid.uuid4())+".json";
+    placeToSaveReply=config.defaultValues.directory_communication_outgoing + str(uuid.uuid4())+".json";
 
     fileContent=json.dumps(\
         {"REPLY_TO":originalFileName, \
          "ERROR_DETECTED":errorDetected, \
-         "TIME_RECEIVED": timeReceivedAsReadableString, \ 
+         "TIME_RECEIVED": timeReceivedAsReadableString, \
          "CONTENT": contentOfReply}, indent=4);
     fh=open(placeToSaveReply, "w");
     fh.write(fileContent);
@@ -124,23 +127,23 @@ def handleMessage(fullPath: str, fileName : str) -> None:
         # then that would be caught and reported by the try-except block we're in.
         if(not os.path.isfile(fullPath) ):
             errorMessageIndented=handleError(\
-                f"    Will not / cannot process received message \"{fullPath}\" beyond moving it under directory \"{configs.defaultValues.placeToMoveOldInboxContentTo}\": content is not a file (e.g., is a directory, link, or so forth).");
+                f"    Will not / cannot process received message \"{fullPath}\" beyond moving it under directory \"{config.defaultValues.placeToMoveOldInboxContentTo}\": content is not a file (e.g., is a directory, link, or so forth).");
             ### would be nice to handle this with actual control flow that is not a hammer, but that prettiness / cleanliness can wait a bit at minimal cost..... #### formReplyStatingErrorOccurred(fullPath,fileName, errorMessageIndented, timeReceivedAsReadableString);
             raise Exception(errorMessageIndented);           
         assert(os.path.isfile(fullPath));
-        if( os.path.getsize(fullPath) > configs.defaultValues.maxSizeCommunicationWillReadInBytes):
+        if( os.path.getsize(fullPath) > config.defaultValues.maxSizeCommunicationWillReadInBytes):
             errorMessageIndented=handleError(\
-            f"    Will not process received message \"{fullPath}\": the content is larger than the maximum file size we consider processing, {configs.defaultValues.maxSizeCommunicationWillReadInBytes} bytes.");
+            f"    Will not process received message \"{fullPath}\": the content is larger than the maximum file size we consider processing, {config.defaultValues.maxSizeCommunicationWillReadInBytes} bytes.");
             ### We considered adding the log to move the file, but doing that in a way that also ensure recordinf of errors and robustness is effort not best spent right now.....# f"    Will not process received message \"{fullPath}\"  beyond moving it under directory \"{configs.defaultValues.placeToMoveOldInboxContentTo}\": the content is larger than the maximum file size we consider processing, {configs.defaultValues.maxSizeCommunicationWillReadInBytes} bytes.");
             raise Exception(errorMessageIndented);
 
 
         fh=open(fullPath, "rb");
-        fhContent=fh.read(configs.maxSizeCommunicationWillReadInBytes);
+        fhContent=fh.read(config.defaultValues.maxSizeCommunicationWillReadInBytes);
         if(len(fh.read()) > 0):
             fh.close();
             raise Exception(f"Content in file \"{fullPath}\" which was provided as a request to the system, is larger"+\
-                            f" than the maximum size we're willing to process of {configs.maxSizeCommunicationWillReadInBytes}.");
+                            f" than the maximum size we're willing to process of {config.defaultValues.maxSizeCommunicationWillReadInBytes}.");
         fh.close();
 
         objDatabaseInterface.connection.rollback();
@@ -156,7 +159,7 @@ def handleMessage(fullPath: str, fileName : str) -> None:
         objDatabaseInterface.cursor.execute("""
             INSERT INTO MessageTable ( status, message, isGeneralMaintenceAndInfo, 
                 isProblem, IDOfSpecificOtherEndpointIfApplicable )  
-            VALUES (?, ?, ?, ?, ?, ?)""", \
+            VALUES (?, ?, ?, ?, ?)""", \
             ["received", fhContent, 0, 0, IDForEndpointReadFrom ]);
         objDatabaseInterface.connection.commit();
 
@@ -222,9 +225,9 @@ def readAndAddressMessages() -> None:
     >>> os.listdir.__doc__
     "Return a list containing the names of the files in the directory.\n\npath can be specified as either str, bytes, or a path-like object.  If path is bytes,\n  the filenames returned will also be bytes; in all other circumstances\n  the filenames returned will be str.\nIf path is None, uses the path='.'.\nOn some platforms, path may also be specified as an open file descriptor;\\\n  the file descriptor must refer to a directory.\n  If this functionality is unavailable, using it raises NotImplementedError.\n\nThe list is in arbitrary order.  It does not include the special\nentries '.' and '..' even if they are present in the directory."
     """
-    for thisF in os.listdir(configs.defaultValues.directory_communication_incoming):
-        assert(os.path.exists(thisF));
-        handleMessage(configs.defaultValues.directory_communication_incoming+thisF);   
+    for thisF in os.listdir(config.defaultValues.directory_communication_incoming):
+        assert(os.path.exists(config.defaultValues.directory_communication_incoming + thisF));
+        handleMessage(config.defaultValues.directory_communication_incoming+thisF, thisF);   
     return ;
 
 
@@ -232,7 +235,7 @@ def readAndAddressMessages() -> None:
 
 
 routinesToCallAndTheirName=[ \
-    (readAndAddressMessage,"ReadAndAddressMessages")
+    (readAndAddressMessages,"ReadAndAddressMessages")
 ];
 
 
@@ -243,7 +246,7 @@ try:
 
         print(f"{cycleNumber}",flush=True);
 
-        if(cycleNumber % communicationDaemon_logCycleFrequency == 0):
+        if(cycleNumber % config.defaultValues.communicationDaemon_logCycleFrequency == 0):
             # Not logging every cycle since this is expected to run far more often
             # than the other Daemon
             objDatabaseInterface.connection.rollback();
@@ -259,7 +262,7 @@ try:
             break;    
 
         for thisSubRoutine, subRoutineName in routinesToCallAndTheirName:
-            if(cycleNumber % communicationDaemon_logCycleFrequency == 0):
+            if(cycleNumber % config.defaultValues.communicationDaemon_logCycleFrequency == 0):
                 # Not logging every cycle since this is expected to run far more often
                 # than the other Daemon
                 objDatabaseInterface.connection.rollback();
@@ -268,11 +271,11 @@ try:
                 objDatabaseInterface.connection.commit();
 
             try:
-                thisSubRoutine(objDatabaseInterface);
+                thisSubRoutine(); #objDatabaseInterface);
             except:
                 handleError(f"An exception has occurred while running subroutine {subRoutineName}");
 
-        if(cycleNumber % communicationDaemon_logCycleFrequency == 0):
+        if(cycleNumber % config.defaultValues.communicationDaemon_logCycleFrequency == 0):
             # Not logging every cycle since this is expected to run far more often
             # than the other Daemon
 
@@ -283,6 +286,8 @@ try:
             objDatabaseInterface.connection.commit();
 
         cycleNumber=cycleNumber+1;
+
+        objDatabaseInterface.connection.commit();
 
         time.sleep(config.defaultValues.timeToSleepBetweenChecks_communicationDaemon);
 

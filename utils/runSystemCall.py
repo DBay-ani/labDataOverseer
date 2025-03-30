@@ -2,6 +2,7 @@ from utils.contracts import requires, ensures;
 
 import subprocess;
 
+from databaseIOManager import objDatabaseInterface; 
 
 
 def runSystemCall(command):
@@ -12,7 +13,7 @@ def runSystemCall(command):
     if( len(stderr) > 0 or ((process.returncode) is not None and (process.returncode != 0)) ):
         errorString=(
             f"The following error occurred while running the system call {runSystemCall}"+ \
-            str(command)+":\n    "+stderr.replace("\n", "\n    ") \
+            str(command)+":\n    "+str(stderr).replace("\n", "\n    ") \
             );
         objDatabaseInterface.connection.rollback();
         objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (?)", [errorString]); 

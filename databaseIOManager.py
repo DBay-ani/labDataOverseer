@@ -40,7 +40,6 @@ import sqlite3
 import config; 
 import pickle;
 import sys;
-from utils.runSystemCall import runSystemCall;
 
 class DatabaseInterface():
 
@@ -191,7 +190,7 @@ def recordRunContext():
     return;
 
 
-from typing import Tuple, Any
+from typing import Tuple, Any, List ;
 
 def attemptSetDefaultValues(objDatabaseInterface):
     commandsAndVars : List[Tuple[str, Tuple[Any,...]]]= [\
@@ -206,6 +205,12 @@ def attemptSetDefaultValues(objDatabaseInterface):
 
 
 objDatabaseInterface = Sqlite3Database();
+# NOTE: since the two packages imported below ALSO IMPORT THIS FILE (well,objDatabaseInterface specifically)
+# from it), they need to do below to avoid circular imports.
+from utils.runSystemCall import runSystemCall;
+from utils.handleError import handleError;
+
+
 objDatabaseInterface.open();
 # Note that the script generating the session table and current session value
 # needs to go before anything else
