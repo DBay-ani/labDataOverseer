@@ -199,4 +199,59 @@ BEGIN
           new.all_red,
           (SELECT ID from DataContentType WHERE name = 'all_red') );
 END;
-
+--- While the Update_DatasetAndMostRecentFiles trigger is very similar to the 
+--- InsertInto_DatasetAndMostRecentFiles trigger, it containst insert statements
+--- saying "INSERT OR IGNORE", which offers less error-catching than just an insert
+--- and helps make sure that values that were the same as something previously were
+--- intentionally given. Note that inside the body of the trigger, we use INSERT instead
+--- of actual updates on the tables so that we have a record of old values and when they
+--- were in effect.
+CREATE TEMP TRIGGER Update_DatasetAndMostRecentFiles
+INSTEAD OF UPDATE ON DatasetAndMostRecentFiles
+FOR EACH ROW 
+BEGIN
+    UPDATE Datasets SET --- TODO: record the old values someone (other than just relying on the logging and message tables - some proper, machine-readable way that is closely associated with the Dataset table...)
+        worm_sex = new.worm_sex, worm_strain=new.worm_strain 
+        WHERE ID=new.datasetID AND name=new.datasetName;
+    --- TODO: instead of using OR IGNORE below which could fail due to constraints
+    --- other than the uniqueness of the locations failing, do something more robust
+    --- that only actually inserts if the value is new, and not simply inserts when
+    --- contraints don't fail. As-is, this leaves constraint violations that should
+    --- be reported to the user to be unreported and, at present in the corresponding
+    --- python code for "update", reports an untrouble success despite of this.
+    INSERT OR IGNORE INTO DatasetContent (datasetMemberOf, location, dataRecordType )
+    VALUES
+        ( new.datasetID, 
+          new.OFP,
+          (SELECT ID from DataContentType WHERE name = 'OFP') );
+    INSERT OR IGNORE INTO DatasetContent ( datasetMemberOf, location, dataRecordType )
+    VALUES
+        ( new.datasetID, 
+          new.BFP,
+          (SELECT ID from DataContentType WHERE name = 'BFP') );
+    INSERT OR IGNORE INTO DatasetContent ( datasetMemberOf, location, dataRecordType )
+    VALUES
+        ( new.datasetID, 
+          new.google_sheet,
+          (SELECT ID from DataContentType WHERE name = 'google_sheet') );
+    INSERT OR IGNORE INTO DatasetContent ( datasetMemberOf, location, dataRecordType )
+    VALUES
+        ( new.datasetID, 
+          new.mNeptune,
+          (SELECT ID from DataContentType WHERE name = 'mNeptune') );
+    INSERT OR IGNORE INTO DatasetContent (datasetMemberOf, location, dataRecordType)
+    VALUES
+        ( new.datasetID, 
+          new.freely_moving,
+          (SELECT ID from DataContentType WHERE name = 'freely_moving') );
+    INSERT OR IGNORE INTO DatasetContent (datasetMemberOf, location, dataRecordType)
+    VALUES
+        ( new.datasetID, 
+          new.NIR,
+          (SELECT ID from DataContentType WHERE name = 'NIR') );
+    INSERT OR IGNORE INTO DatasetContent (datasetMemberOf, location, dataRecordType)
+    VALUES
+        ( new.datasetID, 
+          new.all_red,
+          (SELECT ID from DataContentType WHERE name = 'all_red') );
+END;

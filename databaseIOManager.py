@@ -96,6 +96,8 @@ class Sqlite3Database(DatabaseInterface):
         self.connection.row_factory = dict_factory;
 
         self.cursor = self.connection.cursor();
+        # For the below, see, for instance, https://stackoverflow.com/questions/29420910/how-do-i-enforce-foreign-keys/74947340#74947340
+        self.connection.execute('PRAGMA foreign_keys = ON');
         ensures(self.connection is not None);
         ensures(self.cursor is not None);
         return;

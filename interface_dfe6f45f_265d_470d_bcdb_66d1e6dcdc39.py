@@ -23,7 +23,7 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
         return "sweet_orchestra_polite_turbot";
 
     def process(self, inputVal : typing.Dict[str, typing.Union[str,typing.Dict[str,str]]]) -> typing.Dict[str, typing.Union[str,typing.Dict[str,str]]]:
-        keyToFunctionMap={"add": self._add, "ls" : self._ls, "get": self._get}
+        keyToFunctionMap={"add": self._add, "ls" : self._ls, "get": self._get, "update": self._update}
         # see TODO(19e8f005-450a-4790-9ee9-0eead5001b4c).
         # if("request" not in inputVal):
         #     raise Exception("The message does not specify a request type "+\
@@ -45,7 +45,9 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
                 "\nNOTE: comparisons ARE case-sensative.");
         return;
 
-    def _add(self, inputVal: typing.Dict[str, typing.Union[str,typing.Dict[str,str]]]) -> typing.Dict[str,str]:
+    def _add_or_update(self, inputVal: typing.Dict[str, typing.Union[str,typing.Dict[str,str]]], \
+                       databaseFunctionToExecute : typing.Callable[..., None], messageStringAddition : str, \
+                       getDatasetID: typing.Callable[[str], int] ) -> typing.Dict[str,str]:
         self.checkAndRaiseErrorIfUnknownAdditionalKeys(\
             "at top-level of the received message's JSON.", inputVal, frozenset(["interface_id","request","content"]));
         contentToRecord : typing.Dict[str,str] =inputVal["content"];
@@ -109,19 +111,55 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
                 assert(datasetName+thisExtension == contentToRecord["freely_moving"]);
                 break;
          
-        # TODO: make the below line more robust.
-        datasetIDNumber=  [ (1 if (x["maxID"] is None) else (x["maxID"]+1)) for x in objDatabaseInterface.cursor.execute("SELECT max(ID) as maxID FROM Datasets")][0]
+        datasetIDNumber=getDatasetID(datasetName);
 
         keysInFixedOrder = sorted(list(valuesToRecord.keys()));
-        objDatabaseInterface.cursor.execute("INSERT INTO DatasetAndMostRecentFiles( datasetID, datasetName, " + ",".join(keysInFixedOrder) +")"+\
-            "VALUES (?,?,"+  ",".join(["?" for x in keysInFixedOrder]) +")", [datasetIDNumber, datasetName]+ [valuesToRecord[x] for x in keysInFixedOrder]);
+        databaseFunctionToExecute(datasetIDNumber, datasetName, keysInFixedOrder, valuesToRecord);
+        #objDatabaseInterface.cursor.execute("INSERT INTO DatasetAndMostRecentFiles( datasetID, datasetName, " + ",".join(keysInFixedOrder) +")"+\
+        #    "VALUES (?,?,"+  ",".join(["?" for x in keysInFixedOrder]) +")", [datasetIDNumber, datasetName]+ [valuesToRecord[x] for x in keysInFixedOrder]);
         objDatabaseInterface.connection.commit();
 
         dataFromDatabaseAfterStoring=[x for x in objDatabaseInterface.cursor.execute("SELECT * FROM DatasetAndMostRecentFiles WHERE datasetID=?", [datasetIDNumber])];
-        contentOfReply={"message": f"Data added successfully to database under the dataset name \"{datasetName}\", ID number {datasetIDNumber}.\n" + \
+        contentOfReply={"message": f"Data {messageStringAddition} successfully to database under the dataset name \"{datasetName}\", ID number {datasetIDNumber}.\n" + \
             "Briefly, data as currently stored in the database:\n\t"+str(dataFromDatabaseAfterStoring)+"\n" +\
             "Issue request for `ls` to retrieve this information again in the future."}
         return contentOfReply;
+
+    def _add(self, inputVal: typing.Dict[str, typing.Union[str,typing.Dict[str,str]]]):
+        # databaseFunctionToExecute : typing.Callable[..., None], messageStringAddition : str)
+        def databaseFunctionToExecute(datasetIDNumber, datasetName, keysInFixedOrder, valuesToRecord):
+            objDatabaseInterface.cursor.execute("INSERT INTO DatasetAndMostRecentFiles( datasetID, datasetName, " + ",".join(keysInFixedOrder) +")"+\
+                "VALUES (?,?,"+  ",".join(["?" for x in keysInFixedOrder]) +")", [datasetIDNumber, datasetName]+ [valuesToRecord[x] for x in keysInFixedOrder]);
+            return;
+        messageStringAddition="added"  
+        def getDatasetID(ignoreVal):
+            # TODO: make the below line more robust.
+            datasetIDNumber=  [ (1 if (x["maxID"] is None) else (x["maxID"]+1)) for x in objDatabaseInterface.cursor.execute("SELECT max(ID) as maxID FROM Datasets")][0]
+            return datasetIDNumber ;
+        
+        return self._add_or_update(inputVal, databaseFunctionToExecute,messageStringAddition, getDatasetID);
+
+    def _update(self, inputVal: typing.Dict[str, typing.Union[str,typing.Dict[str,str]]]):
+        # databaseFunctionToExecute : typing.Callable[..., None], messageStringAddition : str)
+        def databaseFunctionToExecute(datasetIDNumber, datasetName, keysInFixedOrder, valuesToRecord):
+            objDatabaseInterface.cursor.execute("UPDATE DatasetAndMostRecentFiles SET datasetID = ?, datasetName =?, " + "=? ,".join(keysInFixedOrder) +" =?",\
+                 [datasetIDNumber, datasetName]+ [valuesToRecord[x] for x in keysInFixedOrder]);
+            return;
+        messageStringAddition="updated"  
+        def getDatasetID(datasetName):
+            # TODO: make the below line more robust.
+            datasetIDNumber=  [ x for x in objDatabaseInterface.cursor.execute("SELECT ID as ID FROM Datasets WHERE name = ?", [datasetName])]
+            if(len(datasetIDNumber) == 0):
+                raise Exception(f"The dataset specified to be updated (\"{datasetName}\", "+\
+                                " as inferred from the file name of the \"freely_moving\" key) does not exist in our records. Has it "+\
+                                "been added to the database in the past with the add-request? If not, that should be done, since the " + \
+                                "update command will not create datasets if they don't already exist.");
+            datasetIDNumber=datasetIDNumber[0]["ID"];
+            return datasetIDNumber ;
+        
+        return self._add_or_update(inputVal, databaseFunctionToExecute,messageStringAddition, getDatasetID);
+    
+
 
     def _ls(self, inputVal):
         # TODO: allow the "content" key to be there so long as the corresponding value is an empty
