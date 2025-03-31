@@ -43,14 +43,15 @@ VALUES
     ( 'BFP', 'blue fluorescent protein'),
     ( 'google_sheet', 'The Google sheet that the data collector/experimenter used to record the conditions collected.'),
     ( 'mNeptune', NULL),
-    ( 'freely_moving', NULL), --- TODO
+    ( 'freely_moving', 'The confocal data collected for the freely moving worm... etc.'),
+    ( 'all_red', NULL), 
     ( 'NIR', 'Near Infrared recording of the E Elegans worm while freely moving.');
 
 ---- rowID, sessionID, datasetID, filePath , dateRecordADded , dataRecordType, misc (TEXT)
 CREATE TABLE IF NOT EXISTS DatasetContent (
     sessionID INTEGER,
     rowID INTEGER PRIMARY KEY AUTOINCREMENT,
-    location TEXT  UNIQUE NOT NULL, --- SQLite3 seems to restrict to one primary key... ---- PRIMARY KEY, -- file path or URL....
+    location TEXT  UNIQUE NOT NULL, --- SQLite3 seems to restrict to one primary key... ---- PRIMARY KEY, -- file path or URL.... NOTE: might have to relax the unique contraint for Google sheets...
     timeAdded INTEGER DEFAULT CURRENT_TIMESTAMP NOT NULL,
     datasetMemberOf INTEGER NOT NULL, 
     dataRecordType INTEGER NOT NULL, 
@@ -103,7 +104,8 @@ CREATE VIEW IF NOT EXISTS DatasetAndMostRecentFiles (
     google_sheet,
     mNeptune,
     freely_moving,
-    NIR
+    NIR,
+    all_red
     )
 AS SELECT 
     A1.ID,
@@ -115,7 +117,8 @@ AS SELECT
     B3.location,
     B4.location,
     B5.location,
-    B6.location
+    B6.location,
+    B7.location
 FROM
     Datasets AS A1,
     DatasetAndMostRecentIndividualFiles AS B1,
@@ -123,7 +126,8 @@ FROM
     DatasetAndMostRecentIndividualFiles AS B3,
     DatasetAndMostRecentIndividualFiles AS B4,
     DatasetAndMostRecentIndividualFiles AS B5,
-    DatasetAndMostRecentIndividualFiles AS B6
+    DatasetAndMostRecentIndividualFiles AS B6,
+    DatasetAndMostRecentIndividualFiles AS B7
 WHERE
     B1.datasetID=A1.ID AND
     B2.datasetID=A1.ID AND
@@ -131,12 +135,14 @@ WHERE
     B4.datasetID=A1.ID AND
     B5.datasetID=A1.ID AND
     B6.datasetID=A1.ID AND
+    B7.datasetID=A1.ID AND
     B1.dataContentTypeName='OFP' AND
     B2.dataContentTypeName='BFP' AND
     B3.dataContentTypeName='google_sheet' AND
     B4.dataContentTypeName='mNeptune' AND
     B5.dataContentTypeName='freely_moving' AND
-    B6.dataContentTypeName='NIR';
+    B6.dataContentTypeName='NIR' AND
+    B7.dataContentTypeName='all_red';
 
 CREATE TEMP TRIGGER InsertInto_DatasetAndMostRecentFiles
 INSTEAD OF INSERT ON DatasetAndMostRecentFiles
@@ -175,5 +181,10 @@ BEGIN
         ( new.datasetID, 
           new.NIR,
           (SELECT ID from DataContentType WHERE name = 'NIR') );
+    INSERT INTO DatasetContent (datasetMemberOf, location, dataRecordType)
+    VALUES
+        ( new.datasetID, 
+          new.all_red,
+          (SELECT ID from DataContentType WHERE name = 'all_red') );
 END;
 

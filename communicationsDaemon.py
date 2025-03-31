@@ -197,7 +197,7 @@ def handleMessage(fullPath: str, fileName : str) -> None:
         # This moving is meant as a convieniance and indicator to the user, not any deeper form of 
         # content backup.
         newLocationForFile=config.defaultValues.placeToMoveOldInboxContentTo + \
-            "RECIEVIED_AT_"+str(time.ctime().replace(" ","_").replace(":", "-")) +"__"+ fileName;
+            "RECEIVED_AT_"+str(time.ctime().replace(" ","_").replace(":", "-")) +"__"+ fileName;
         
         os.replace(fullPath, newLocationForFile);
         objDatabaseInterface.connection.rollback();
@@ -241,7 +241,7 @@ def handleMessage(fullPath: str, fileName : str) -> None:
         # On the below line, the () are to instantiate an instance of the class, since above
         # we only dealt with the static methods of the class.
         contentReceivedBack=matchingInterface[0]().process(readJSONContent);
-        issueReply(fullPath, \
+        issueReply(fileName, \
             errorDetected=False, \
             contentOfReply=contentReceivedBack, \
             timeReceivedAsReadableString=timeReceivedAsReadableString);

@@ -2,6 +2,8 @@
 
 from interfaceBaseClasses import InterfaceBaseClass;
 import typing;
+from databaseIOManager import objDatabaseInterface; 
+import os;
 
 class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
 
@@ -12,13 +14,15 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
         self.keysForFilesInContentToRead : typing.FrozenSet[str]=self.keysForContentToRead.difference(["base_path", "worm_sex", "worm_strain", "google_sheet"]);
         self.keysForURLsInContentToRead : typing.FrozenSet[str]=frozenset(["google_sheet"]);
         self.keysForMetadataInContent : typing.FrozenSet[str]=frozenset(["worm_sex", "worm_strain"]);
+        self.keysToInfer :typing.FrozenSet[str] = frozenset(["NIR"]);
+        self.allowedFileExtensions : typing.FrozenSet[str]= frozenset({".h5", ".nd2"});
         return ;
 
     @staticmethod
     def get_human_readable_name() -> str:
         return "sweet_orchestra_polite_turbot";
 
-    def process(self, inputVal):
+    def process(self, inputVal : typing.Dict[str, typing.Union[str,typing.Dict[str,str]]]) -> typing.Dict[str, typing.Union[str,typing.Dict[str,str]]]:
         keyToFunctionMap={"add": self._add, "ls" : self._ls, "get": self._get}
         # see TODO(19e8f005-450a-4790-9ee9-0eead5001b4c).
         # if("request" not in inputVal):
@@ -27,7 +31,7 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
         #         "specify your request is, well, \"request\").")
         if(inputVal["request"] not in keyToFunctionMap):
             raise Exception(f"Unrecognized user request type: \"{inputVal["request"]}\"");  
-        contentToReturn = keyToFunctionMap[inputVal["request"]](inputVal["request"]);
+        contentToReturn = keyToFunctionMap[inputVal["request"]](inputVal); # ["content"]);
         return contentToReturn;  
 
     def checkAndRaiseErrorIfUnknownAdditionalKeys(self, \
@@ -41,10 +45,10 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
                 "\nNOTE: comparisons ARE case-sensative.");
         return;
 
-    def _add(self, inputVal):
+    def _add(self, inputVal: typing.Dict[str, typing.Union[str,typing.Dict[str,str]]]) -> typing.Dict[str,str]:
         self.checkAndRaiseErrorIfUnknownAdditionalKeys(\
             "at top-level of the received message's JSON.", inputVal, frozenset(["interface_id","request","content"]));
-        contentToRecord=inputVal["content"];
+        contentToRecord : typing.Dict[str,str] =inputVal["content"];
 
         self.checkAndRaiseErrorIfUnknownAdditionalKeys(\
             "in the \"content\" dictionary", contentToRecord, self.keysForContentToRead);        
@@ -57,10 +61,14 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
         if(contentToRecord["worm_sex"] not in {"h","m"}):
             raise Exception("Unknown value specified for \"worm_sex\". "+\
                             "We expect either \"h\" for hermaphrodite or \"m\" for male." + \
-                            "Value found:\""+contentToRecord[thisKey]["worm_sex"]+"\"");
+                            "Value found:\""+contentToRecord["worm_sex"]+"\"");
     
-
-        
+        # TODO: eventually do the below more robustly and in a more generalizable way.
+        for thisKey in self.keysToInfer:
+            if(thisKey == 'NIR'):
+                # Notice that the for-loop which adds many things (but not all things at present)
+                # to valuesToRecord checks that such a file exists.
+                contentToRecord["NIR"] = contentToRecord["freely_moving"][:-len(".nd2")] + ".h5";
 
         basePathForFiles= contentToRecord["base_path"];
         if(len(basePathForFiles) < 1):
@@ -68,17 +76,51 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
         if(basePathForFiles[-1] != "/"):
             basePathForFiles=basePathForFiles+"/";
         
-        for thisKey in self.keysForFilesInContentToRead:
+        valuesToRecord=dict();
+        for thisKey in self.keysForFilesInContentToRead.union(self.keysToInfer):
             thisFullPath= basePathForFiles + contentToRecord[thisKey];
+            if(not os.path.exists(thisFullPath)):
+                raise Exception(f"The value for the key \"{thisKey}\" specifies a file that could not be found. The file specified: \"{thisFullPath}\".");
+            if(not any([thisFullPath.endswith(thisExtension) for thisExtension in self.allowedFileExtensions])):
+                # NOTE: we do a conversion to a set below from a frozenset so that the representation is clearer to people -
+                #     don't want those who are not overly familiar with Python to be thrown off by seeing the text "frozenset", etc....
+                raise Exception(f"The path provided under the key \"{thisKey}\" specifies a file with an unknown extension. We expected a "+\
+                    f"value in {set(self.allowedFileExtensions)} to end the path provided. The path provided by the user was: {thisFullPath}");
+            valuesToRecord[thisKey] =  thisFullPath;
         
+        # TODO: give better checks for the file existing...below is a bit constrained and
+        # misses most critical use cases.
+        startingURLLocation="https://docs.google.com/document/d/"
+        if(not contentToRecord["google_sheet"].startswith(startingURLLocation)):
+            raise Exception(f"The value provided in \"google_sheet\" is not as expected. It does not start with \"{startingURLLocation}\"." + \
+                            f"Value provided for \"google_sheet\": {contentToRecord['google_sheet']}");
 
-        raise NotImplementedError();
-        #TODO: 
-        #     assemble the full file paths
-        #     check that the files paths exist and (ideally, but maybe for later) are sufficiently readable
-        #         ideally, later, we could do sanity checks to ensure the format is correct as welll...
-        #     load the content into the database....
-        contentOfReply={"message": "Data added successfully to database. Issue request for `ls` to it listed."}
+        valuesToRecord['google_sheet'] =  contentToRecord["google_sheet"];
+
+        # TODO: write explicit checks here that the worm_sex and worm_strain are as expected - but, at present, 
+        #     the database does those checks and will raise an exception if they are violated, and I'm low on time.
+        for thisKey in self.keysForMetadataInContent:
+            valuesToRecord[thisKey] = contentToRecord[thisKey];
+        
+        datasetName=contentToRecord["freely_moving"];
+        for thisExtension in self.allowedFileExtensions:
+            if(datasetName.endswith(thisExtension)):
+                datasetName=datasetName[:-len(thisExtension)];
+                assert(datasetName+thisExtension == contentToRecord["freely_moving"]);
+                break;
+         
+        # TODO: make the below line more robust.
+        datasetIDNumber=  [ (1 if (x["maxID"] is None) else (x["maxID"]+1)) for x in objDatabaseInterface.cursor.execute("SELECT max(ID) as maxID FROM Datasets")][0]
+
+        keysInFixedOrder = sorted(list(valuesToRecord.keys()));
+        objDatabaseInterface.cursor.execute("INSERT INTO DatasetAndMostRecentFiles( datasetID, datasetName, " + ",".join(keysInFixedOrder) +")"+\
+            "VALUES (?,?,"+  ",".join(["?" for x in keysInFixedOrder]) +")", [datasetIDNumber, datasetName]+ [valuesToRecord[x] for x in keysInFixedOrder]);
+        objDatabaseInterface.connection.commit();
+
+        dataFromDatabaseAfterStoring=[x for x in objDatabaseInterface.cursor.execute("SELECT * FROM DatasetAndMostRecentFiles WHERE datasetID=?", [datasetIDNumber])];
+        contentOfReply={"message": f"Data added successfully to database under the dataset name \"{datasetName}\", ID number {datasetIDNumber}.\n" + \
+            "Briefly, data as currently stored in the database:\n\t"+str(dataFromDatabaseAfterStoring)+"\n" +\
+            "Issue request for `ls` to retrieve this information again in the future."}
         return contentOfReply;
 
     def _ls(self, inputVal):
