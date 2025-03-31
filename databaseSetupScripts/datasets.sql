@@ -37,21 +37,21 @@ BEGIN
         sessionID=(SELECT * FROM CurrentSession)
     WHERE ID=new.ID;
 END;
-INSERT OR IGNORE INTO DataContentType ( name, misc) 
+INSERT OR IGNORE INTO DataContentType (ID, name, misc) 
 VALUES
-    ( 'OFP', 'orange fluorescent protein'),
-    ( 'BFP', 'blue fluorescent protein'),
-    ( 'google_sheet', 'The Google sheet that the data collector/experimenter used to record the conditions collected.'),
-    ( 'mNeptune', NULL),
-    ( 'freely_moving', 'The confocal data collected for the freely moving worm... etc.'),
-    ( 'all_red', NULL), 
-    ( 'NIR', 'Near Infrared recording of the E Elegans worm while freely moving.');
+    ( 0, 'OFP', 'orange fluorescent protein'),
+    ( 1, 'BFP', 'blue fluorescent protein'),
+    ( 2, 'google_sheet', 'The Google sheet that the data collector/experimenter used to record the conditions collected.'),
+    ( 3, 'mNeptune', NULL),
+    ( 4, 'freely_moving', 'The confocal data collected for the freely moving worm... etc.'),
+    ( 5, 'all_red', NULL), 
+    ( 6, 'NIR', 'Near Infrared recording of the E Elegans worm while freely moving.');
 
 ---- rowID, sessionID, datasetID, filePath , dateRecordADded , dataRecordType, misc (TEXT)
 CREATE TABLE IF NOT EXISTS DatasetContent (
     sessionID INTEGER,
     rowID INTEGER PRIMARY KEY AUTOINCREMENT,
-    location TEXT  UNIQUE NOT NULL, --- SQLite3 seems to restrict to one primary key... ---- PRIMARY KEY, -- file path or URL.... NOTE: might have to relax the unique contraint for Google sheets...
+    location TEXT  NOT NULL, --- SQLite3 seems to restrict to one primary key... ---- PRIMARY KEY, -- file path or URL.... NOTE: might have to relax the unique contraint for Google sheets...
     timeAdded INTEGER DEFAULT CURRENT_TIMESTAMP NOT NULL,
     datasetMemberOf INTEGER NOT NULL, 
     dataRecordType INTEGER NOT NULL, 
@@ -60,6 +60,18 @@ CREATE TABLE IF NOT EXISTS DatasetContent (
     FOREIGN KEY( dataRecordType ) REFERENCES DataContentType(ID)
     FOREIGN KEY( sessionID ) REFERENCES Sessions(ID)
     );
+---- NOTE(c7eac8f1-432b-4260-9060-c90d91019153): Below is prohibited by SQLite syntax (see, for instance, 
+---- https://stackoverflow.com/questions/59086591/how-to-create-partial-index-on-table-with-where-clause-in-sqlite/59089132#59089132 )
+---- so, while there may be better ways to do this, for now we get around the issue by manually assigning an 
+---- ID to the 'google_sheet' type above and manually specify that index here...
+---- ---- Below, we use unique index to check  that certain values are unique while other we allow
+---- ---- not to be.
+---- CREATE UNIQUE INDEX IF NOT EXISTS UniqueIndexOn_DatasetContent
+---- ON DatasetContent (location)
+---- WHERE dataRecordType NOT IN (SELECT * FROM DataContentType AS B WHERE B.name='google_sheet' AND B.ID);
+CREATE UNIQUE INDEX IF NOT EXISTS UniqueIndexOn_DatasetContent
+ON DatasetContent (location)
+WHERE dataRecordType != 2;
 CREATE TEMP TRIGGER AddSessionInfo_DatasetContent
 AFTER INSERT ON Datasets
 FOR EACH ROW 
