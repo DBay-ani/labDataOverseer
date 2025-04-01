@@ -22,7 +22,7 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
     def get_human_readable_name() -> str:
         return "sweet_orchestra_polite_turbot";
 
-    def process(self, inputVal : typing.Dict[str, typing.Union[str,typing.Dict[str,str]]]) -> typing.Dict[str, typing.Union[str,typing.Dict[str,str]]]:
+    def process(self, inputVal : typing.Dict[str, typing.Union[str,typing.Dict[str,typing.Optional[str]]]]) -> typing.Dict[str, typing.Union[str,typing.Dict[str,str]]]:
         keyToFunctionMap={"add": self._add, "ls" : self._ls, "get": self._get, "update": self._update}
         # see TODO(19e8f005-450a-4790-9ee9-0eead5001b4c).
         # if("request" not in inputVal):
@@ -162,15 +162,42 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
 
 
     def _ls(self, inputVal):
-        # TODO: allow the "content" key to be there so long as the corresponding value is an empty
-        # dictionary.
+        if("content" not in inputVal):
+            inputVal["content"] = {"filter": None};
+        
         self.checkAndRaiseErrorIfUnknownAdditionalKeys(\
-            "at top-level of the received message's JSON.", inputVal, frozenset(["interface_id","request"]));
-        raise NotImplementedError();
+            "at top-level of the received message's JSON.", inputVal, frozenset(["interface_id","request","content"]));
+
+        if(inputVal["content"]["filter"] is not None):
+            raise NotImplementedError(f"We have not yet implemented filter {inputVal["filter"]} for the \"ls\" command."+ \
+                                      " Try again without specifying a filter (just enter \"filter\":null in the content section of your JSON).");
+
+        content=objDatabaseInterface.cursor.execute("SELECT * FROM  DatasetAndMostRecentFiles");
+    
+        return { x["datasetName"] : x for x in content }; 
 
     def _get(self, inputVal):
-        # TODO: allow the "content" key to be there so long as the corresponding value is an empty
-        # dictionary.
+
         self.checkAndRaiseErrorIfUnknownAdditionalKeys(\
-            "at top-level of the received message's JSON.", inputVal, frozenset(["interface_id","request"]));
-        raise NotImplementedError();
+            "at top-level of the received message's JSON.", inputVal, frozenset(["interface_id","request", "content"]));
+        
+        assert(isinstance(inputVal["content"], dict));
+        if(set(inputVal["content"].keys()) not in frozenset([ frozenset(["dataset_name"]), frozenset(["dataset_id"]) ]) ):
+            raise Exception(f"Unknown filtering criteria to the get-request. "+\
+                f"We allow on to filter by \"dataset_name\" or \"dataset_id\". Found keys: {set(inputVal["content"].keys())}");
+
+        # TODO: code the below more robustly.
+        key="datasetName";
+        if(list(inputVal["content"].items())[0][0] == "datasetID"):
+            key="datasetID";
+        value=list(inputVal["content"].items())[0][1];
+
+        content=objDatabaseInterface.cursor.execute("SELECT * FROM  DatasetAndMostRecentFiles WHERE " + key +" = ?", \
+            [value]);
+        content=[x for x in content];
+        # TODO: code the below more robustly.
+        assert(len(content) <= 1);
+        if(len(content) ==0):
+            raise Exception(f"Dataset not found: {key}=\"{value}\"")
+
+        return content;
