@@ -220,6 +220,11 @@ def handleMessage(fullPath: str, fileName : str) -> None:
             raise Exception(errorMessage);
 
         assert(isinstance(readJSONContent,dict));
+        # NOTE: we don't just add in "interface_id" if it is missing because what if someone tried to add it and 
+        # misspelled it or something similar. Proceeding might cause more confusion then help.
+        if(set(readJSONContent.keys()).issubset({"request", "content"})):
+            readJSONContent["interface_id"]=config.defaultValues.defaultInterfaceForFileCommunication;
+
         if("interface_id" not in readJSONContent):
             raise Exception("The JSON file provided does not specify a value for key \"interface_id\" " + \
                             "(without this, we don't know how the rest of the file should be interpretted).");

@@ -16,3 +16,5 @@ timeToSleepBetweenChecks_communicationDaemon=5; # In seconds
 timeToWaitBeforeDeletingOldReceivedMessageFiles=(24 * 3600); # In seconds
 maxSizeCommunicationWillReadInBytes=(2**19); # Half a MiB
 
+
+defaultInterfaceForFileCommunication="sweet_orchestra_polite_turbot";
