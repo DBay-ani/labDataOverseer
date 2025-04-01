@@ -11,7 +11,7 @@ placeToMoveOldInboxContentTo=baseOfCommunicationsLocations+"tmp/external/";
 directory_communication_outgoing=baseOfCommunicationsLocations+"tempDataStore/outbox/";
 
 
-communicationDaemon_logCycleFrequency=1000;
+communicationDaemon_logCycleFrequency=10;  #1000;
 timeToSleepBetweenChecks_communicationDaemon=5; # In seconds
 timeToWaitBeforeDeletingOldReceivedMessageFiles=(24 * 3600); # In seconds
 maxSizeCommunicationWillReadInBytes=(2**19); # Half a MiB

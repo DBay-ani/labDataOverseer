@@ -40,7 +40,6 @@ import sqlite3
 import config; 
 import pickle;
 import sys;
-from utils.runSystemCall import runSystemCall;
 
 class DatabaseInterface():
 
@@ -97,6 +96,8 @@ class Sqlite3Database(DatabaseInterface):
         self.connection.row_factory = dict_factory;
 
         self.cursor = self.connection.cursor();
+        # For the below, see, for instance, https://stackoverflow.com/questions/29420910/how-do-i-enforce-foreign-keys/74947340#74947340
+        self.connection.execute('PRAGMA foreign_keys = ON');
         ensures(self.connection is not None);
         ensures(self.cursor is not None);
         return;
@@ -191,12 +192,16 @@ def recordRunContext():
     return;
 
 
-from typing import Tuple, Any
+from typing import Tuple, Any, List ;
 
 def attemptSetDefaultValues(objDatabaseInterface):
-    commandsAndVars : List[Tuple[str, Any]]= [\
-        "" 
-
+    commandsAndVars : List[Tuple[str, Tuple[Any,...]]]= [\
+        ("INSERT OR IGNORE INTO ContactorsTable (" +\
+            "name, contactInfo, notifyAboutGeneralMaintenceAndInfo, notifyWhenAdditions, notifyWhenProblem, endpointType) "+ \
+            "VALUES (?, ?, ?, ?, ?, ?)", ('DefaultMessageReceptionPoint', config.defaultValues.directory_communication_incoming, 0, 0, 0, 'file_directory') ), \
+        ("INSERT OR IGNORE INTO ContactorsTable (" +\
+            "name, contactInfo, notifyAboutGeneralMaintenceAndInfo, notifyWhenAdditions, notifyWhenProblem, endpointType) "+ \
+            "VALUES (?, ?, ?, ?, ?, ?)", ('DefaultLocationToSendMessagesReceivedAtDefaultMessageReceptionPoint', config.defaultValues.directory_communication_outgoing, 0, 0, 0, 'file_directory') ) \
     ]; 
     for thisCommand, theseVars in commandsAndVars:
         objDatabaseInterface.cursor.execute(thisCommand, theseVars);
@@ -205,6 +210,12 @@ def attemptSetDefaultValues(objDatabaseInterface):
 
 
 objDatabaseInterface = Sqlite3Database();
+# NOTE: since the two packages imported below ALSO IMPORT THIS FILE (well,objDatabaseInterface specifically)
+# from it), they need to do below to avoid circular imports.
+from utils.runSystemCall import runSystemCall;
+from utils.handleError import handleError;
+
+
 objDatabaseInterface.open();
 # Note that the script generating the session table and current session value
 # needs to go before anything else
@@ -213,14 +224,16 @@ for thisScriptFile in [
         "makeContextTable.sql", \
         "makeContactorsTable.sql",\
         "makeMessageTable.sql",\
-        "makeRunLogsTable.sql"
+        "makeRunLogsTable.sql", \
+        "datasets.sql"
     ]:
     objDatabaseInterface.executeScriptFile(\
         "databaseSetupScripts/" + thisScriptFile);
     objDatabaseInterface.commit();
     
 recordRunContext();
-attemptSetDefaultValues();
+attemptSetDefaultValues(objDatabaseInterface);
+objDatabaseInterface.commit();
 
 
 
