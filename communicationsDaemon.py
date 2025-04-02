@@ -127,7 +127,7 @@ def formReplyStatingErrorOccurred(fullPath : str, fileName:str, errorMessageInde
  
     return; 
 
-
+from utils.runSystemCall import runSystemCall;
 
 
 def handleMessage(fullPath: str, fileName : str) -> None:
@@ -180,11 +180,21 @@ def handleMessage(fullPath: str, fileName : str) -> None:
         # on the below line should come in earlier etc.
         IDForEndpointReadFrom= [x for x in objDatabaseInterface.cursor.execute(\
             "SELECT ID FROM ContactorsTable WHERE name=?", ["DefaultMessageReceptionPoint"])][0]["ID"];
+        extraInfo="";
+        try:
+            # NOTE: the use of "stat" below allows us to record more metadata- IN PARTICULAR WHO MADE THE REQUEST.
+            # TODO: in future iterations of the database, record this additional messsage data in a more principle way.....
+            extraInfo=runSystemCall(["stat", fullPath]);
+        except Exception as e:
+            # NOTE: the logging already present in runSystemCall should record in the database that an error 
+            # occurred etc., so if we don't right that to the run-log here, it not the end of the world since
+            # we already have a record of that information.
+            extraInfo=f"Error occurred running 'stat {fullPath}'. Details:\n" +str(e);
         objDatabaseInterface.cursor.execute("""
             INSERT INTO MessageTable ( status, message, isGeneralMaintenceAndInfo, 
-                isProblem, IDOfSpecificOtherEndpointIfApplicable )  
-            VALUES (?, ?, ?, ?, ?)""", \
-            ["received", fhContent, 0, 0, IDForEndpointReadFrom ]);
+                isProblem, IDOfSpecificOtherEndpointIfApplicable, misc )  
+            VALUES (?, ?, ?, ?, ?, ?)""", \
+            ["received", fhContent, 0, 0, IDForEndpointReadFrom, extraInfo ]);
         objDatabaseInterface.connection.commit();
 
         objDatabaseInterface.connection.rollback();

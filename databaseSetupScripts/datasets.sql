@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS Datasets (
     --- but likely they can be refactored out later
     worm_sex TEXT NOT NULL,
     worm_strain TEXT NOT NULL,
-    misc TEXT, 
+    misc BLOB, 
     FOREIGN KEY( sessionID ) REFERENCES Sessions(ID),
     CHECK(worm_sex in ("h", "m")),
     CHECK(length(worm_strain) > 0)
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS DataContentType (
     ID INTEGER PRIMARY KEY AUTOINCREMENT,
     sessionID INTEGER,
     name TEXT  UNIQUE NOT NULL, --- SQLite3 seems to restrict to one primary key... ---- PRIMARY KEY,
-    misc TEXT,
+    misc BLOB,
     FOREIGN KEY( sessionID ) REFERENCES Sessions(ID)
     );
 CREATE TEMP TRIGGER AddSessionInfo_DataContentType
@@ -47,7 +47,6 @@ VALUES
     ( 5, 'all_red', NULL), 
     ( 6, 'NIR', 'Near Infrared recording of the E Elegans worm while freely moving.');
 
----- rowID, sessionID, datasetID, filePath , dateRecordADded , dataRecordType, misc (TEXT)
 CREATE TABLE IF NOT EXISTS DatasetContent (
     sessionID INTEGER,
     rowID INTEGER PRIMARY KEY AUTOINCREMENT,
