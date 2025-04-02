@@ -47,7 +47,7 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
 
     def _add_or_update(self, inputVal: typing.Dict[str, typing.Union[str,typing.Dict[str,str]]], \
                        databaseFunctionToExecute : typing.Callable[..., None], messageStringAddition : str, \
-                       getDatasetID: typing.Callable[[str], int] ) -> typing.Dict[str,str]:
+                       getdataset_id: typing.Callable[[str], int] ) -> typing.Dict[str,str]:
         self.checkAndRaiseErrorIfUnknownAdditionalKeys(\
             "at top-level of the received message's JSON.", inputVal, frozenset(["interface_id","request","content"]));
         contentToRecord : typing.Dict[str,str] =inputVal["content"];
@@ -104,60 +104,60 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
         for thisKey in self.keysForMetadataInContent:
             valuesToRecord[thisKey] = contentToRecord[thisKey];
         
-        datasetName=contentToRecord["freely_moving"];
+        dataset_name=contentToRecord["freely_moving"];
         for thisExtension in self.allowedFileExtensions:
-            if(datasetName.endswith(thisExtension)):
-                datasetName=datasetName[:-len(thisExtension)];
-                assert(datasetName+thisExtension == contentToRecord["freely_moving"]);
+            if(dataset_name.endswith(thisExtension)):
+                dataset_name=dataset_name[:-len(thisExtension)];
+                assert(dataset_name+thisExtension == contentToRecord["freely_moving"]);
                 break;
          
-        datasetIDNumber=getDatasetID(datasetName);
+        dataset_idNumber=getdataset_id(dataset_name);
 
         keysInFixedOrder = sorted(list(valuesToRecord.keys()));
-        databaseFunctionToExecute(datasetIDNumber, datasetName, keysInFixedOrder, valuesToRecord);
-        #objDatabaseInterface.cursor.execute("INSERT INTO DatasetAndMostRecentFiles( datasetID, datasetName, " + ",".join(keysInFixedOrder) +")"+\
-        #    "VALUES (?,?,"+  ",".join(["?" for x in keysInFixedOrder]) +")", [datasetIDNumber, datasetName]+ [valuesToRecord[x] for x in keysInFixedOrder]);
+        databaseFunctionToExecute(dataset_idNumber, dataset_name, keysInFixedOrder, valuesToRecord);
+        #objDatabaseInterface.cursor.execute("INSERT INTO DatasetAndMostRecentFiles( dataset_id, dataset_name, " + ",".join(keysInFixedOrder) +")"+\
+        #    "VALUES (?,?,"+  ",".join(["?" for x in keysInFixedOrder]) +")", [dataset_idNumber, dataset_name]+ [valuesToRecord[x] for x in keysInFixedOrder]);
         objDatabaseInterface.connection.commit();
 
-        dataFromDatabaseAfterStoring=[x for x in objDatabaseInterface.cursor.execute("SELECT * FROM DatasetAndMostRecentFiles WHERE datasetID=?", [datasetIDNumber])];
-        contentOfReply={"message": f"Data {messageStringAddition} successfully to database under the dataset name \"{datasetName}\", ID number {datasetIDNumber}.\n" + \
+        dataFromDatabaseAfterStoring=[x for x in objDatabaseInterface.cursor.execute("SELECT * FROM DatasetAndMostRecentFiles WHERE dataset_id=?", [dataset_idNumber])];
+        contentOfReply={"message": f"Data {messageStringAddition} successfully to database under the dataset name \"{dataset_name}\", ID number {dataset_idNumber}.\n" + \
             "Briefly, data as currently stored in the database:\n\t"+str(dataFromDatabaseAfterStoring)+"\n" +\
             "Issue request for `ls` to retrieve this information again in the future."}
         return contentOfReply;
 
     def _add(self, inputVal: typing.Dict[str, typing.Union[str,typing.Dict[str,str]]]):
         # databaseFunctionToExecute : typing.Callable[..., None], messageStringAddition : str)
-        def databaseFunctionToExecute(datasetIDNumber, datasetName, keysInFixedOrder, valuesToRecord):
-            objDatabaseInterface.cursor.execute("INSERT INTO DatasetAndMostRecentFiles( datasetID, datasetName, " + ",".join(keysInFixedOrder) +")"+\
-                "VALUES (?,?,"+  ",".join(["?" for x in keysInFixedOrder]) +")", [datasetIDNumber, datasetName]+ [valuesToRecord[x] for x in keysInFixedOrder]);
+        def databaseFunctionToExecute(dataset_idNumber, dataset_name, keysInFixedOrder, valuesToRecord):
+            objDatabaseInterface.cursor.execute("INSERT INTO DatasetAndMostRecentFiles( dataset_id, dataset_name, " + ",".join(keysInFixedOrder) +")"+\
+                "VALUES (?,?,"+  ",".join(["?" for x in keysInFixedOrder]) +")", [dataset_idNumber, dataset_name]+ [valuesToRecord[x] for x in keysInFixedOrder]);
             return;
         messageStringAddition="added"  
-        def getDatasetID(ignoreVal):
+        def getdataset_id(ignoreVal):
             # TODO: make the below line more robust.
-            datasetIDNumber=  [ (1 if (x["maxID"] is None) else (x["maxID"]+1)) for x in objDatabaseInterface.cursor.execute("SELECT max(ID) as maxID FROM Datasets")][0]
-            return datasetIDNumber ;
+            dataset_idNumber=  [ (1 if (x["maxID"] is None) else (x["maxID"]+1)) for x in objDatabaseInterface.cursor.execute("SELECT max(ID) as maxID FROM Datasets")][0]
+            return dataset_idNumber ;
         
-        return self._add_or_update(inputVal, databaseFunctionToExecute,messageStringAddition, getDatasetID);
+        return self._add_or_update(inputVal, databaseFunctionToExecute,messageStringAddition, getdataset_id);
 
     def _update(self, inputVal: typing.Dict[str, typing.Union[str,typing.Dict[str,str]]]):
         # databaseFunctionToExecute : typing.Callable[..., None], messageStringAddition : str)
-        def databaseFunctionToExecute(datasetIDNumber, datasetName, keysInFixedOrder, valuesToRecord):
-            objDatabaseInterface.cursor.execute("UPDATE DatasetAndMostRecentFiles SET datasetID = ?, datasetName =?, " + "=? ,".join(keysInFixedOrder) +" =?",\
-                 [datasetIDNumber, datasetName]+ [valuesToRecord[x] for x in keysInFixedOrder]);
+        def databaseFunctionToExecute(dataset_idNumber, dataset_name, keysInFixedOrder, valuesToRecord):
+            objDatabaseInterface.cursor.execute("UPDATE DatasetAndMostRecentFiles SET dataset_id = ?, dataset_name =?, " + "=? ,".join(keysInFixedOrder) +" =?",\
+                 [dataset_idNumber, dataset_name]+ [valuesToRecord[x] for x in keysInFixedOrder]);
             return;
         messageStringAddition="updated"  
-        def getDatasetID(datasetName):
+        def getdataset_id(dataset_name):
             # TODO: make the below line more robust.
-            datasetIDNumber=  [ x for x in objDatabaseInterface.cursor.execute("SELECT ID as ID FROM Datasets WHERE name = ?", [datasetName])]
-            if(len(datasetIDNumber) == 0):
-                raise Exception(f"The dataset specified to be updated (\"{datasetName}\", "+\
+            dataset_idNumber=  [ x for x in objDatabaseInterface.cursor.execute("SELECT ID as ID FROM Datasets WHERE name = ?", [dataset_name])]
+            if(len(dataset_idNumber) == 0):
+                raise Exception(f"The dataset specified to be updated (\"{dataset_name}\", "+\
                                 " as inferred from the file name of the \"freely_moving\" key) does not exist in our records. Has it "+\
                                 "been added to the database in the past with the add-request? If not, that should be done, since the " + \
                                 "update command will not create datasets if they don't already exist.");
-            datasetIDNumber=datasetIDNumber[0]["ID"];
-            return datasetIDNumber ;
+            dataset_idNumber=dataset_idNumber[0]["ID"];
+            return dataset_idNumber ;
         
-        return self._add_or_update(inputVal, databaseFunctionToExecute,messageStringAddition, getDatasetID);
+        return self._add_or_update(inputVal, databaseFunctionToExecute,messageStringAddition, getdataset_id);
     
 
 
@@ -174,7 +174,7 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
 
         content=objDatabaseInterface.cursor.execute("SELECT * FROM  DatasetAndMostRecentFiles");
     
-        return { x["datasetName"] : x for x in content }; 
+        return { x["dataset_name"] : x for x in content }; 
 
     def _get(self, inputVal):
 
@@ -187,9 +187,9 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
                 f"We allow on to filter by \"dataset_name\" or \"dataset_id\". Found keys: {set(inputVal["content"].keys())}");
 
         # TODO: code the below more robustly.
-        key="datasetName";
-        if(list(inputVal["content"].items())[0][0] == "datasetID"):
-            key="datasetID";
+        key="dataset_name";
+        if(list(inputVal["content"].items())[0][0] == "dataset_id"):
+            key="dataset_id";
         value=list(inputVal["content"].items())[0][1];
 
         content=objDatabaseInterface.cursor.execute("SELECT * FROM  DatasetAndMostRecentFiles WHERE " + key +" = ?", \

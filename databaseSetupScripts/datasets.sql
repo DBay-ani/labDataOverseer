@@ -81,8 +81,8 @@ BEGIN
 END;
 
 CREATE VIEW IF NOT EXISTS DatasetAndMostRecentIndividualFiles(
-    datasetID,
-    datasetName,
+    dataset_id,
+    dataset_name,
     dataContentTypeName,
     location
     )
@@ -106,8 +106,8 @@ HAVING
 
 
 CREATE VIEW IF NOT EXISTS DatasetAndMostRecentFiles (
-    datasetID,
-    datasetName,
+    dataset_id,
+    dataset_name,
     worm_sex,
     worm_strain,
     OFP,
@@ -140,13 +140,13 @@ FROM
     DatasetAndMostRecentIndividualFiles AS B6,
     DatasetAndMostRecentIndividualFiles AS B7
 WHERE
-    B1.datasetID=A1.ID AND
-    B2.datasetID=A1.ID AND
-    B3.datasetID=A1.ID AND
-    B4.datasetID=A1.ID AND
-    B5.datasetID=A1.ID AND
-    B6.datasetID=A1.ID AND
-    B7.datasetID=A1.ID AND
+    B1.dataset_id=A1.ID AND
+    B2.dataset_id=A1.ID AND
+    B3.dataset_id=A1.ID AND
+    B4.dataset_id=A1.ID AND
+    B5.dataset_id=A1.ID AND
+    B6.dataset_id=A1.ID AND
+    B7.dataset_id=A1.ID AND
     B1.dataContentTypeName='OFP' AND
     B2.dataContentTypeName='BFP' AND
     B3.dataContentTypeName='google_sheet' AND
@@ -161,40 +161,40 @@ FOR EACH ROW
 BEGIN
     INSERT INTO Datasets(ID, name,
         worm_sex, worm_strain)
-    VALUES (new.datasetID, new.datasetName, new.worm_sex, new.worm_strain);
+    VALUES (new.dataset_id, new.dataset_name, new.worm_sex, new.worm_strain);
     INSERT INTO DatasetContent (datasetMemberOf, location, dataRecordType )
     VALUES
-        ( new.datasetID, 
+        ( new.dataset_id, 
           new.OFP,
           (SELECT ID from DataContentType WHERE name = 'OFP') );
     INSERT INTO DatasetContent ( datasetMemberOf, location, dataRecordType )
     VALUES
-        ( new.datasetID, 
+        ( new.dataset_id, 
           new.BFP,
           (SELECT ID from DataContentType WHERE name = 'BFP') );
     INSERT INTO DatasetContent ( datasetMemberOf, location, dataRecordType )
     VALUES
-        ( new.datasetID, 
+        ( new.dataset_id, 
           new.google_sheet,
           (SELECT ID from DataContentType WHERE name = 'google_sheet') );
     INSERT INTO DatasetContent ( datasetMemberOf, location, dataRecordType )
     VALUES
-        ( new.datasetID, 
+        ( new.dataset_id, 
           new.mNeptune,
           (SELECT ID from DataContentType WHERE name = 'mNeptune') );
     INSERT INTO DatasetContent (datasetMemberOf, location, dataRecordType)
     VALUES
-        ( new.datasetID, 
+        ( new.dataset_id, 
           new.freely_moving,
           (SELECT ID from DataContentType WHERE name = 'freely_moving') );
     INSERT INTO DatasetContent (datasetMemberOf, location, dataRecordType)
     VALUES
-        ( new.datasetID, 
+        ( new.dataset_id, 
           new.NIR,
           (SELECT ID from DataContentType WHERE name = 'NIR') );
     INSERT INTO DatasetContent (datasetMemberOf, location, dataRecordType)
     VALUES
-        ( new.datasetID, 
+        ( new.dataset_id, 
           new.all_red,
           (SELECT ID from DataContentType WHERE name = 'all_red') );
 END;
@@ -211,7 +211,7 @@ FOR EACH ROW
 BEGIN
     UPDATE Datasets SET --- TODO: record the old values someone (other than just relying on the logging and message tables - some proper, machine-readable way that is closely associated with the Dataset table...)
         worm_sex = new.worm_sex, worm_strain=new.worm_strain 
-        WHERE ID=new.datasetID AND name=new.datasetName;
+        WHERE ID=new.dataset_id AND name=new.dataset_name;
     --- TODO: instead of using OR IGNORE below which could fail due to constraints
     --- other than the uniqueness of the locations failing, do something more robust
     --- that only actually inserts if the value is new, and not simply inserts when
@@ -220,37 +220,37 @@ BEGIN
     --- python code for "update", reports an untrouble success despite of this.
     INSERT OR IGNORE INTO DatasetContent (datasetMemberOf, location, dataRecordType )
     VALUES
-        ( new.datasetID, 
+        ( new.dataset_id, 
           new.OFP,
           (SELECT ID from DataContentType WHERE name = 'OFP') );
     INSERT OR IGNORE INTO DatasetContent ( datasetMemberOf, location, dataRecordType )
     VALUES
-        ( new.datasetID, 
+        ( new.dataset_id, 
           new.BFP,
           (SELECT ID from DataContentType WHERE name = 'BFP') );
     INSERT OR IGNORE INTO DatasetContent ( datasetMemberOf, location, dataRecordType )
     VALUES
-        ( new.datasetID, 
+        ( new.dataset_id, 
           new.google_sheet,
           (SELECT ID from DataContentType WHERE name = 'google_sheet') );
     INSERT OR IGNORE INTO DatasetContent ( datasetMemberOf, location, dataRecordType )
     VALUES
-        ( new.datasetID, 
+        ( new.dataset_id, 
           new.mNeptune,
           (SELECT ID from DataContentType WHERE name = 'mNeptune') );
     INSERT OR IGNORE INTO DatasetContent (datasetMemberOf, location, dataRecordType)
     VALUES
-        ( new.datasetID, 
+        ( new.dataset_id, 
           new.freely_moving,
           (SELECT ID from DataContentType WHERE name = 'freely_moving') );
     INSERT OR IGNORE INTO DatasetContent (datasetMemberOf, location, dataRecordType)
     VALUES
-        ( new.datasetID, 
+        ( new.dataset_id, 
           new.NIR,
           (SELECT ID from DataContentType WHERE name = 'NIR') );
     INSERT OR IGNORE INTO DatasetContent (datasetMemberOf, location, dataRecordType)
     VALUES
-        ( new.datasetID, 
+        ( new.dataset_id, 
           new.all_red,
           (SELECT ID from DataContentType WHERE name = 'all_red') );
 END;
