@@ -110,7 +110,7 @@ def issueReply(originalFileName : str, errorDetected: bool,  contentOfReply : di
         INSERT INTO MessageTable ( status, message, isGeneralMaintenceAndInfo, 
             isProblem, IDOfSpecificOtherEndpointIfApplicable )  
         VALUES (?, ?, ?, ?, ?)""", \
-        ["sent", fileContent, 0, 1, IDForEndpointSentTo ]);
+        ["sent", fileContent, 0, ( 1 if errorDetected else 0), IDForEndpointSentTo ]);
     objDatabaseInterface.connection.commit();
 
     return;
