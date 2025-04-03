@@ -16,5 +16,7 @@ communicationDaemon_logCycleFrequency=int( 24 * (3600 // timeToSleepBetweenCheck
 timeToWaitBeforeDeletingOldReceivedMessageFiles=(24 * 3600); # In seconds
 maxSizeCommunicationWillReadInBytes=(2**19); # Half a MiB
 
+maxSizeGoogleSheetFile=(2 * 24); # 16 MiB
+
 
 defaultInterfaceForFileCommunication="sweet_orchestra_polite_turbot";
