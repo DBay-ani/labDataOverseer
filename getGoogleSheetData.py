@@ -11,7 +11,7 @@ import config ;
 import typing;
 from typing import List, Dict, Tuple ;
 
-def _parseProposedAddressAndReturnTargetAddresses(proposedAddress):
+def _parseProposedAddressAndReturnTargetAddresses(proposedAddress : str) -> Dict[str,str]:
     requires(isinstance(proposedAddress,str));
   
     # Note: we're careful to include the $ at the end, otherwise addresses like 
@@ -45,7 +45,7 @@ def _parseProposedAddressAndReturnTargetAddresses(proposedAddress):
     return resultToReturn;
 
 
-def _getData(proposedAddress) -> bytes:
+def _getData(proposedAddress : str) -> bytes:
     requires(isinstance(proposedAddress,str));
 
     responceToHTTPRequest=requests.get(proposedAddress);
@@ -54,7 +54,7 @@ def _getData(proposedAddress) -> bytes:
         # Below should be repetative with the call to raise_for_status above, but
         # we do it just in case, etc
         raise Exception(f"Website indicated error when we attemted to visit {proposedAddress}:" + \
-            str({x : exec(x) for x in ["retrievedContent.ok", "retrievedContent.reason", "retrievedContent.status_code"]}) );
+            str({x : eval(x) for x in ["retrievedContent.ok", "retrievedContent.reason", "retrievedContent.status_code"]}) );
     contentOfResponce = responceToHTTPRequest.content;
     assert(isinstance(contentOfResponce,bytes));
     if(len(contentOfResponce) == 0):
@@ -66,7 +66,7 @@ def _getData(proposedAddress) -> bytes:
     #     not. For now those, and for most foreseeable practical use in the intended environment, just an issue
     #     seems doubtful.
     if(len(contentOfResponce) > config.defaultValues.maxSizeGoogleSheetFile):
-        raise Exception(\   
+        raise Exception(\
             f"The content returned by the website after visiting \"{proposedAddress}\" was " + \
             f"larger than the maximum allowed content size of {config.defaultValues.maxSizeGoogleSheetFile} bytes. What was " + \
             f"retrieved was {len(contentOfResponce)} bytes (note that we do not rule out the possibility that only some of the content was" + \
@@ -79,10 +79,11 @@ def _getData(proposedAddress) -> bytes:
     return contentOfResponce;
 
 
-def _sanityCheckMarkdownReceived(markdownText : str) -> None:
-    requires(isinstance(markdownText,str));
+def _sanityCheckMarkdownReceived(markdownTextAsBytes : bytes) -> None:
+    requires(isinstance(markdownTextAsBytes,bytes));
 
-    markdownReceivedInLowerCase=markdownText.lower();
+    markdownText : str = bytes.decode(markdownTextAsBytes,"UTF8");
+    markdownReceivedInLowerCase : str =markdownText.lower();
 
     # We check that the acrpnyms of the expected flourescenes show up at least once,
     # not being too stringent on the nature of a match (e.g, we have not ruled out substring
@@ -104,21 +105,21 @@ def _retrieveGoogleSheetMaterialAndSanityCheckIt(proposedAddress : str) -> List[
     requires(isinstance(proposedAddress, str));
     addressesToExamine : typing.Dict[str,str]= _parseProposedAddressAndReturnTargetAddresses(proposedAddress);
     assert(isinstance(addressesToExamine, dict));
-    assert("md" in addressesToExamine.keys);
+    assert("md" in addressesToExamine.keys());
 
-    retrievedMarkdown = _getData(addressesToExamine["md"]);
-    _sanityCheckMarkdownReceived(retrievedMarkdown);
-    compressedMarkdownRetrieved = gzip.compress(retrievedMarkdown);
+    retrievedMarkdownInBytes : bytes = _getData(addressesToExamine["md"]);
+    _sanityCheckMarkdownReceived(retrievedMarkdownInBytes);
+    compressedMarkdownRetrieved : bytes = gzip.compress(retrievedMarkdownInBytes);
     assert(isinstance(compressedMarkdownRetrieved, bytes));
     # Really, if the markdown passes the sanity checks above (i.e., that control flow even reaches here),
     #  then the second term in the disjunct should never evaulate to true, but for now we... leave that bit there...
-    assert( (len(compressedMarkdownRetrieved) > 0) or (len(retrievedMarkdown) == 0) );
+    assert( (len(compressedMarkdownRetrieved) > 0) or (len(retrievedMarkdownInBytes) == 0) );
 
-    retrievedPDFMaterial = _getData(addressesToExamine["pdf"])
+    retrievedPDFMaterialAsBytes : bytes = _getData(addressesToExamine["pdf"])
     # We could attempt to sanity-check the PDF, but that is a venture further afield than 
     # called for at present, given what is already in place and what is yet to be (ex: automated
     # emails ).
-    if( (len(retrievedPDFMaterial) == 0 ) and (len(retrievedMarkdown) > 0)):
+    if( (len(retrievedPDFMaterialAsBytes) == 0 ) and (len(retrievedMarkdownInBytes) > 0)):
         # TODO: consider committing to the database a copy of the markdown content despite this 
         # error - liekly before even retrieving the PDF content. Not yet sure if want both to 
         # fail-out from generating any stored content if only one does, or collect, store and
@@ -128,7 +129,7 @@ def _retrieveGoogleSheetMaterialAndSanityCheckIt(proposedAddress : str) -> List[
             "markdown export being non-empty. Check the link - both on the account where you made it" + \
             "and outside your typical webbrowser (maybe a friend's computer without logging in?), and if "+ \
             "that does not expose a correctable issue, please contact the system admins for help.");
-    compressedPDFRetrieved= gzip.compress(retrievedPDFMaterial);    
+    compressedPDFRetrieved : bytes= gzip.compress(retrievedPDFMaterialAsBytes);    
     assert(isinstance(compressedPDFRetrieved,bytes));
 
     # TODO: ensures
