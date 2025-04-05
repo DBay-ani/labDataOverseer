@@ -165,6 +165,7 @@ def handleGoogleSheetInformation(proposedAddress : str) -> None:
             "share the content at the address widely enough; if other error, such as a typo in the address, is not the cause " + \
             "we suggest you revisit the permission associated with the Googe Document under the \"share\" menu.\n\nError details:" ;
         handleError(errorMessage);
+        raise e;
 
     return;
 

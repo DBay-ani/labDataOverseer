@@ -296,7 +296,9 @@ def readAndAddressMessages() -> None:
 
 
 
-
+# TODO: add a routine to clean old message out (say, if older than 20 minutes or so.....) That would 
+#     be better to eventually place in the daemon that checks files paths are present and sends out emails
+#     if they are not
 routinesToCallAndTheirName=[ \
     (readAndAddressMessages,"ReadAndAddressMessages")
 ];

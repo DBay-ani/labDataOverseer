@@ -4,8 +4,25 @@ from interfaceBaseClasses import InterfaceBaseClass;
 import typing;
 from databaseIOManager import objDatabaseInterface; 
 import os;
+import config;
+import getGoogleSheetData;
 
 class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
+
+
+    # TODO: consider providing a "lock_files" command that would invoke chmod on
+    #     the files associated with a dataset and make them read-only for all  users
+    #     (including root); this would probably also invoke using chown to make the
+    #     group and user root as well- or at least the owner, in case the original file-provider
+    #     set some tighter restrictions (if owned and group-ed by root,then for others to read it,
+    #     the "r" flag for "others" would have to be set, which might not always be desired by the
+    #     original uploaders). Bear in mind this script is meant to be run as admin and thus
+    #     have permissions to do that.
+    #-----------
+    # TODO: related to the general idea of adding features above, one probably should add a 
+    #     static method here that provides a version number (https://semver.org/), though in
+    #     principle that may be inferrable from the Git hash recorded in the logs (not a 
+    #     great argument, but I recognize the priorities currently at play).
 
     def __init__(self):
         super().__init__();
@@ -119,10 +136,15 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
         #    "VALUES (?,?,"+  ",".join(["?" for x in keysInFixedOrder]) +")", [dataset_idNumber, dataset_name]+ [valuesToRecord[x] for x in keysInFixedOrder]);
         objDatabaseInterface.connection.commit();
 
+        getGoogleSheetData.handleGoogleSheetInformation(valuesToRecord['google_sheet']);
+
         dataFromDatabaseAfterStoring=[x for x in objDatabaseInterface.cursor.execute("SELECT * FROM DatasetAndMostRecentFiles WHERE dataset_id=?", [dataset_idNumber])];
         contentOfReply={"message": f"Data {messageStringAddition} successfully to database under the dataset name \"{dataset_name}\", ID number {dataset_idNumber}.\n" + \
-            "Briefly, data as currently stored in the database:\n\t"+str(dataFromDatabaseAfterStoring)+"\n" +\
-            "Issue request for `ls` to retrieve this information again in the future."}
+            "Briefly, data as currently stored in the database (excluding the copy of the Google-Sheets we collected):\n\t"+str(dataFromDatabaseAfterStoring)+"\n" +\
+            "Issue a request for `ls` to retrieve this information again in the future.\n\nMore advanced options you likely don't need to use often:" + 
+            "If at some point you want to get a copy of the Google-sheets data we automatically downloaded and" + \
+            "stored, contact an admin or attach to the SQLite3 database and see BlobContentView (note: the database is located at " + \
+            f"\"{config.defaultValues.databaseName}\" - you might have to use options to view hidden files, like `ls -1a` in order to see it in the directory)."}
         return contentOfReply;
 
     def _add(self, inputVal: typing.Dict[str, typing.Union[str,typing.Dict[str,str]]]):

@@ -72,7 +72,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS UniqueIndexOn_DatasetContent
 ON DatasetContent (location)
 WHERE dataRecordType != 2;
 CREATE TEMP TRIGGER AddSessionInfo_DatasetContent
-AFTER INSERT ON Datasets
+AFTER INSERT ON DatasetContent
 FOR EACH ROW 
 BEGIN
     UPDATE DatasetContent SET 
