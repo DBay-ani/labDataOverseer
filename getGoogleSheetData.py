@@ -5,9 +5,9 @@ import requests;
 import gzip;
 import re;
 
-from utils.handleError import handleError;
 from databaseIOManager import objDatabaseInterface;
 import config ; 
+from utils.handleError import handleError;
 import typing;
 from typing import List, Dict, Tuple ;
 
@@ -41,7 +41,7 @@ def _parseProposedAddressAndReturnTargetAddresses(proposedAddress : str) -> Dict
     ensures(isinstance(resultToReturn,dict));
     ensures(all([isinstance(x, str) for x in resultToReturn.keys()]));
     ensures( len(set([x.rpartition("/")[0] for x in resultToReturn])) == 1);
-    ensures(all([(re.match("^(https://docs.google.com/document/d/[0-9a-zA-z]+[_-][0-9a-zA-Z]+)/export?format=[a-zA-Z0-9_-]*$", x) is not None) for x in resultToReturn.keys()]));
+    ensures(all([(re.match("^(https://docs.google.com/document/d/[0-9a-zA-z]+[_-][0-9a-zA-Z]+)/export\\?format=[a-zA-Z0-9_-]*$", x) is not None) for x in resultToReturn.values()]));
     return resultToReturn;
 
 
@@ -136,58 +136,39 @@ def _retrieveGoogleSheetMaterialAndSanityCheckIt(proposedAddress : str) -> List[
     return [ ("pdf", addressesToExamine["pdf"], compressedPDFRetrieved), \
              ("md" , addressesToExamine["md"] , compressedMarkdownRetrieved) ];
 
+
+
+
 # TODO: 
-#     make the database tables (seperate sql script)
 #     make the primary function that is called here
 #         store the values generated above in the table
 #         -----
 #         work back in the below error catching:
-"""
-    try:
 
+def handleGoogleSheetInformation(proposedAddress : str) -> None:
+    thisAddress=proposedAddress;
+    try:
+        contentRetrieved=_retrieveGoogleSheetMaterialAndSanityCheckIt(proposedAddress);
+        for thisFileType, thisAddress, blobContent in contentRetrieved:
+            objDatabaseInterface.cursor.execute(\
+                """INSERT INTO BlobContentView (name, content, string_contentTypeWhenUncompressed,
+                string_contentCompressionTypeIfApplicable, additionalNoteOrMetadata)
+                VALUES (?, ?, ?, ?, ?) """, [thisAddress, blobContent, thisFileType, 'gzip', '']);
     except Exception as e: 
-        errorMessage=f"An issue came to light while trying to access the content at \"{proposedAddress}\". " + \
+        if(thisAddress == proposedAddress):
+            errorMessage=f"An issue came to light while trying to access the Google Sheet \"{proposedAddress}\". ";
+        else:
+            errorMessage=f"An issue came to light while trying to access the content at \"{thisAddress}\" which is derived from the address " + \
+                f"of the Google Sheet \"{proposedAddress}\". ";
+        errorMessage = errorMessage + \
             "While you should see the following error message, be aware that this may be the result of failing to " + \
             "share the content at the address widely enough; if other error, such as a typo in the address, is not the cause " + \
             "we suggest you revisit the permission associated with the Googe Document under the \"share\" menu.\n\nError details:" ;
         handleError(errorMessage);
-"""
 
-## file type table
-##     ID 
-##     name
-##     description
-##     isCompress
-##     compressed format (for now text limited to being either NUll or in the set ('gzip'))
-##     ----------
-##     .txt
-##     .html
-##     .md (markdown)
-##     .tar
-##     .pdf
-##     .txt.gzip
-##     .pdf.gzip
-# Tables to store in:
-#    session ID
-#    ID of dataset part of 
-#    time and data added 
-#    name (http address typically)
-#    additional notes text
-#    > see https://stackoverflow.com/questions/1884787/how-do-i-drop-a-constraint-from-a-sqlite-3-6-21-table/1884893#1884893 for the below, 
-#    > which complicates the idea since Sqlite3 is being used here (other databases allow updates to what constraints apply to a table....)
-#    fileType text (tempted to make another table for this but thats overkill for now... for now, check for 
-#        membership of a set..... eh... might want to make this a named constraint so it can be dropped and replaced later if needed) ####filetype ID
-#    ### just have compressed format be null... ### is compressed
-#    compressed format if applicable (for now text limited to being either NUll or in the set ('gzip'); ass above 
-#        might want to make this a named constraint so it can be dropped and replaced later if needed)
-#             In light of Sqlite3's limited ability to adjust constraints (sort of mild abuse of the system like triggering a copy of data that goes to a table with that constraint
-#             for the sole purpose of being able to drop that table conveniantly), it is likely best to make another small table  with compression formats listed....
-#    content blob
-
+    return;
 
 
 # TODO : make feature / enhancement request on the FLV-Utils to use the database....
 #     during loads or updates, or routine scanning, read-in trace file, populate rows of (datasetID, row revision number, neuron ID, trace as a blob),
 #     with row revision id being a foreign key to a table with the id and date modified, then neuron ID being  a foreign key to a table of ID number to name etc....
-
-

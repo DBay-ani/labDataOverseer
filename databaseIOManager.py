@@ -194,7 +194,8 @@ for thisScriptFile in [
         "makeContactorsTable.sql",\
         "makeMessageTable.sql",\
         "makeRunLogsTable.sql", \
-        "datasets.sql"
+        "datasets.sql", \
+        "blobStore.sql" \
     ]:
     objDatabaseInterface.executeScriptFile(\
         "databaseSetupScripts/" + thisScriptFile);
