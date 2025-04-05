@@ -15,14 +15,14 @@ def _parseProposedAddressAndReturnTargetAddresses(proposedAddress : str) -> Dict
     requires(isinstance(proposedAddress,str));
   
     # Note: we're careful to include the $ at the end, otherwise addresses like 
-    #     "https://docs.google.com/document/d/1OJvwsoBlDZJfuUFgQv-XQcaNv6EE2S0i0apuCjKZWLYfghfhdfgexport?format=pdf"
+    #     "https://docs.google.com/document/d/1OJvwretlDZJfuUFgQv-XQcaNv6FG2S0i0apuCjKZWLYfghfhdfgexport?format=pdf"
     # would pass through, it would just stop before the last "?" in the text (not the "?" in the regex pattern, mind you).
     pattern="^(https://docs.google.com/document/d/[0-9a-zA-z]+[_-][0-9a-zA-Z]+)(/.*)?$"
     matchInfo = re.match(pattern, proposedAddress);
     if(matchInfo is None):
         raise Exception("The provided URL for the Google Sheet does not match the expected format. We " +\
                         f"expected a URL that would match with the regular expression pattern \"{pattern}\", " + \
-                        f"for instance \"{pattern}\"");
+                        f"for instance \"https://docs.google.com/document/d/1OJvretBlDZJfuUFgQv-XQcaNv6FG2S0i0apuCjKZWLYf/edit?t=1.0\"");
     assert(len(matchInfo.groups()) == 2);
     assert("".join([x for x in matchInfo.groups() if (x is not None)]) == proposedAddress);
     assert(isinstance(matchInfo.group(1),str));

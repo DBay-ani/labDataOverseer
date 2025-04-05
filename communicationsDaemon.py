@@ -25,18 +25,7 @@ objDatabaseInterface.cursor.execute("INSERT INTO RunLogsTable (logInfo) VALUES (
 objDatabaseInterface.connection.commit();
 
 
-# check
-# read
-#    move
-#    send to handler
-#       if error, write error-reply
-# read
-# reply
-#    REPLYTO: (name of the file that was put in the inbox)
-#    TIME_READ: 
-#    REPLY:
-#        
-# Considered YAML, but JSON looks better at minor cost of extra syntax
+# NOTE: I considered makng the communication format YAML, but JSON looks better at minor cost of extra syntax
 # 
 # To write the sanitized file text:
 # >>> import json
@@ -271,17 +260,7 @@ def handleMessage(fullPath: str, fileName : str) -> None:
     objDatabaseInterface.connection.commit();
     return;
 
-"""
-baseOfCommunicationsLocations="/home/b4ba59dcd2b847bb9b12155facf1f0ce/";
-directory_communication_incoming=baseOfCommunicationsLocations+"tempDataStore/inbox/";
-placeToMoveOldInboxContentTo=baseOfCommunicationsLocations+"tmp/external/";
-directory_communication_outgoing=baseOfCommunicationsLocations+"tempDataStore/outbox/";
 
-
-communicationDaemon_logCycleFrequency=1000;
-timeToSleepBetweenChecks_communicationDaemon=5; # In seconds
-timeToWaitBeforeDeletingOldReceivedMessageFiles=(24 * 3600); # In seconds
-"""
 
 def readAndAddressMessages() -> None:
     """Note the following:

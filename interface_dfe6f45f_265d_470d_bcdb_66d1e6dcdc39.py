@@ -132,11 +132,11 @@ class interface_dfe6__dc39__sweet_orchestra(InterfaceBaseClass):
 
         keysInFixedOrder = sorted(list(valuesToRecord.keys()));
         databaseFunctionToExecute(dataset_idNumber, dataset_name, keysInFixedOrder, valuesToRecord);
-        #objDatabaseInterface.cursor.execute("INSERT INTO DatasetAndMostRecentFiles( dataset_id, dataset_name, " + ",".join(keysInFixedOrder) +")"+\
-        #    "VALUES (?,?,"+  ",".join(["?" for x in keysInFixedOrder]) +")", [dataset_idNumber, dataset_name]+ [valuesToRecord[x] for x in keysInFixedOrder]);
+        # Notice we call commit only after handling the Google sheet information, so if things
+        # need to 
+        getGoogleSheetData.handleGoogleSheetInformation(valuesToRecord['google_sheet']);
         objDatabaseInterface.connection.commit();
 
-        getGoogleSheetData.handleGoogleSheetInformation(valuesToRecord['google_sheet']);
 
         dataFromDatabaseAfterStoring=[x for x in objDatabaseInterface.cursor.execute("SELECT * FROM DatasetAndMostRecentFiles WHERE dataset_id=?", [dataset_idNumber])];
         contentOfReply={"message": f"Data {messageStringAddition} successfully to database under the dataset name \"{dataset_name}\", ID number {dataset_idNumber}.\n" + \
