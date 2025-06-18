@@ -1,7 +1,7 @@
 
 For those with access, visit
 https://github.com/DBay-ani/private_from_dbayani_for_flavell_lab
-where you can find a video tutorial and transcript going over the details of this repository's content and what functionality it offers.
+where you can find a video tutorial and transcript going over the details of this repository's content and what functionality it offers. See [discussionsExplainingThingsAndOrDocumentingThings/links.txt#L22](https://github.com/DBay-ani/private_from_dbayani_for_flavell_lab/blob/212843a0104a1889986a2573a9025469302520ed/discussionsExplainingThingsAndOrDocumentingThings/links.txt#L22) and [transcripts/transcript_dbayaniAndAlexHiserTalkingAboutTheDataManager_d9M4y2025tzET.txt](https://github.com/DBay-ani/private_from_dbayani_for_flavell_lab/blob/main/discussionsExplainingThingsAndOrDocumentingThings/transcripts/transcript_dbayaniAndAlexHiserTalkingAboutTheDataManager_d9M4y2025tzET.txt) at that repository to start.
 
 
 A few notes relating to SQLite3 use and databases in general:
