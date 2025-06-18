@@ -1,3 +1,9 @@
+
+For those with access, visit
+https://github.com/DBay-ani/private_from_dbayani_for_flavell_lab
+where you can find a video tutorial and transcript going over the details of this repository's content and what functionality it offers.
+
+
 A few notes relating to SQLite3 use and databases in general:
 
 First, be aware of the concept of database migration, and aspects of it like Schema migration. Those are terms relating to how one updates the structure of their database and then loads in previously existing data in to the newly shaped store. One tool from SQLite3 that may be particularly useful for that (with respect to the foreseen use of this database) is the `.dump` command in the REPL; you can write the content of the database out to a file as pure SQL using that command. Once the content is dumped to the SQL file, one can modify it - such as removing old schemas that are specified in it, then use it to load the data back into the new database. It may be helpful, if one wants to pursue migration that way, to make use of VIEWs and INSTEAD OF INSERT triggers on them; if the re-arrangements of the data that need to occur can be done in pure SQL or with non-cumbersome foreign-function calls, the TRIGGER on the VIEW could allow insertion like it was a table in the original database, but have the TRIGGER logic take care of how the material should be distributed across the new schema. For more sophisticated modifications, like requiring complex statistical summaries and sophisticated looping/branching control-flow, interacting with the database via Python or some other programming language may be more productive. For the use-cases foreseen, using `.dump` and, as needed, VIEWS would probably cover the vast majority of any need. A few links that may be a helpful starting place for dealing with this further:
